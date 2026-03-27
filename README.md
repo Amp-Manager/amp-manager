@@ -4,6 +4,13 @@
 Desktop app for local development. Docker-based stack with a click-and-run GUI. No terminal required. 
 
 
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Amp-Manager/media/refs/heads/main/screenshots/amp-manager-desktop-prototype.jpg" width="100%" height="auto" />
+</p>
+
+
+
 ## ⌨️ Prefer the Terminal?
 
 Try [AMP CLI](https://github.com/amp-manager/amp-cli), a command-line version 
