@@ -18,7 +18,7 @@ AMP Manager provides a unified interface for:
 - Docker container monitoring and control
 - Encrypted credentials and notes storage
 - Visual workflow automation
-- Tunnel services (tuns.sh/pico.sh) integration
+- Tunnel services  integration (share local projects)
 
 ## Activity Timeline 
 
