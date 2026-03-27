@@ -10,6 +10,16 @@ Desktop app for local development. Docker-based stack with a click-and-run GUI. 
 </p>
 
 
+## Features
+
+AMP Manager provides a unified interface for:
+
+- Local domain management with automatic SSL certificates
+- Docker container monitoring and control
+- Encrypted credentials and notes storage
+- Visual workflow automation
+- Tunnel services (tuns.sh/pico.sh) integration
+
 
 ## ⌨️ Prefer the Terminal?
 
