@@ -20,6 +20,36 @@ AMP Manager provides a unified interface for:
 - Visual workflow automation
 - Tunnel services (tuns.sh/pico.sh) integration
 
+## Activity Timeline 
+
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Amp-Manager/media/refs/heads/main/screenshots/amp-manager-desktop-prototype-activity.jpg" width="100%" height="auto" />
+</p>
+
+
+## Docker Management
+
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Amp-Manager/media/refs/heads/main/screenshots/amp-manager-desktop-prototype-docker.jpg" width="100%" height="auto" />
+</p>
+
+## Angie Live Status 
+
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Amp-Manager/media/refs/heads/main/screenshots/amp-manager-desktop-prototype-angie.jpg" width="100%" height="auto" />
+</p>
+
+
+## AMP Manager Workflow
+
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Amp-Manager/media/refs/heads/main/screenshots/amp-manager-desktop-prototype-workflow.jpg" width="100%" height="auto" />
+</p>
+
 
 ## ⌨️ Prefer the Terminal?
 
