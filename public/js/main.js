@@ -241,7 +241,7 @@ window.AMP = {
         npm: (path, command) => amp("workflow_action", `npm "${path}" "${command}"`),
         shell: (path, command) => amp("workflow_action", `shell "${path}" "${command}"`),
         
-        // Orphan temp key cleanup - runs before custom key SFTP
+        // temp key cleanup - runs before custom key SFTP
         async cleanupOrphanKeys() {
             const userTemp = process.env.TEMP || process.env.TMP;
             try {
@@ -279,7 +279,7 @@ window.AMP = {
         
         // ADVANCED: SFTP with custom SSH key (temp file with icacls, always deleted)
         sftpWithCustomKey: async (host, username, localPath, remotePath, keyContent) => {
-            // Cleanup orphan temp keys first
+            // Cleanup temp keys first
             await workflow.cleanupOrphanKeys();
             
             const userTemp = process.env.TEMP || process.env.TMP;
@@ -311,10 +311,8 @@ window.AMP = {
     }
 };
 
-// ------------------------------------------------------------
 // System Tray
-// ------------------------------------------------------------
-function setTray() {
+/* function setTray() {
     if (NL_MODE !== "window") return;
     Neutralino.os.setTray({
         icon: "/resources/icons/trayIcon.png",
@@ -324,19 +322,17 @@ function setTray() {
         ]
     });
     
-}
+} */
 
-Neutralino.events.on("trayMenuItemClicked", event => {
+/* Neutralino.events.on("trayMenuItemClicked", event => {
     if (event.detail.id === "OPEN") Neutralino.window.show();
     if (event.detail.id === "QUIT") Neutralino.app.exit();
-});
+}); */
 
 
-// ------------------------------------------------------------
 // Init
-// ------------------------------------------------------------
 Neutralino.init();
 
 Neutralino.events.on("ready", () => {
-    setTray();
+//    setTray();
 });
