@@ -1,0 +1,7 @@
+# Docker Compose Override
+# Use this for local development adjustments
+# Example:
+# services:
+#   php:
+#     environment:
+#       - XDEBUG_MODE=debug

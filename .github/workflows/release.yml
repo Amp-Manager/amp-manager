@@ -1,0 +1,115 @@
+name: Build & Release AMP-Manager
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Extract version from tag
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+        shell: pwsh
+
+      - name: Update versions
+        run: |
+          # Update neutralino.config.json
+          $config = Get-Content 'neutralino.config.json' -Raw | ConvertFrom-Json
+          $config.version = "${{ env.VERSION }}"
+          $config | ConvertTo-Json -Depth 10 | Set-Content 'neutralino.config.json'
+          
+          # Update package.json
+          $package = Get-Content 'package.json' -Raw | ConvertFrom-Json
+          $package.version = "${{ env.VERSION }}"
+          $package | ConvertTo-Json -Depth 10 | Set-Content 'package.json'
+        shell: pwsh
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build UI
+        run: npm run build
+
+      - name: Build Neutralino app (Release)
+        run: npx @neutralinojs/neu build --release
+
+      - name: Verify build output
+        run: |
+          if (-not (Test-Path "dist/amp-manager/amp-manager-win_x64.exe")) {
+            throw "Neutralino build failed - executable not found"
+          }
+          Write-Host "Build verified successfully"
+        shell: pwsh
+
+      - name: Clean non-Windows platforms
+        run: |
+          Get-ChildItem -Path "dist/amp-manager" -Directory | 
+            Where-Object { $_.Name -match 'linux|mac|arm' } | 
+            Remove-Item -Recurse -Force
+        shell: pwsh
+
+      - name: Apply UAC manifest
+        run: .\post-build.bat
+        shell: cmd
+        timeout: 120
+
+      - name: Prepare final release package
+        run: |
+          # Create clean release folder
+          New-Item -ItemType Directory -Path "dist/release" -Force | Out-Null
+          
+          # Core Neutralino built files
+          Copy-Item "dist/amp-manager/amp-manager-win_x64.exe" -Destination "dist/release/" -Force
+          Copy-Item "dist/amp-manager/resources.neu" -Destination "dist/release/" -Force
+          
+          # Required backend
+          Copy-Item "amp-tasks.bat" -Destination "dist/release/" -Force
+          
+          # Docker files
+          Copy-Item "docker-compose.yml" -Destination "dist/release/" -Force
+          Copy-Item "docker-compose.override.yml" -Destination "dist/release/" -Force
+          Copy-Item ".env" -Destination "dist/release/" -Force
+          
+          # Required folders
+          Copy-Item -Path "angie_cache", "config", "data", "logs", "www" -Destination "dist/release/" -Recurse -Force
+          
+          # Documentation
+          Copy-Item "README.md" -Destination "dist/release/" -Force
+          
+          # Clean up bin/ if present
+          Remove-Item -Path "dist/release/bin" -Recurse -Force -ErrorAction SilentlyContinue
+        shell: pwsh
+
+      - name: Create release ZIP
+        run: |
+          Compress-Archive -Path "dist/release/*" -DestinationPath "AMP-Manager-${{ env.VERSION }}-win-x64.zip" -Force
+        shell: pwsh
+
+      - name: Upload ZIP as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AMP-Manager-release
+          path: AMP-Manager-${{ env.VERSION }}-win-x64.zip
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AMP-Manager-${{ env.VERSION }}-win-x64.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

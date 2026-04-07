@@ -1,0 +1,83 @@
+version: '3.8'
+name: amp-manager
+services:
+  angie:
+    image: docker.angie.software/angie:1.11.3
+    environment:
+      - ANGIE_LOAD_MODULES=brotli,subs
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      # Master Config
+      - ./config/angie.conf:/etc/angie/angie.conf:ro
+      # Cache Persistence
+      - ./angie_cache:/var/cache/angie:rw
+      # SSL Certs
+      - ./config/certs:/etc/angie/certs:ro
+      # Individual Site Configs
+      - ./config/angie-sites:/etc/angie/http.d:ro
+      # Global Error Pages (Fallback)
+      - ./config/error-pages:/usr/share/angie/error-pages:ro
+      # Web Root
+      - ./www:/www:rw
+      # Logs
+      - ./logs/angie:/var/log/angie:rw
+    networks:
+      - amp-network
+    depends_on:
+      - php
+    restart: unless-stopped
+  php:
+    image: webdevops/php:8.3
+    user: root
+    volumes:
+      - ./www:/www:rw
+      - ./config/php.ini:/opt/docker/etc/php/php.ini:ro
+      - ./config/angie-sites:/etc/angie/http.d:ro
+      - ./logs/php:/var/log/php:rw
+    networks:
+      - amp-network
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.29.3
+    container_name: mailpit
+    ports:
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP port
+    networks:
+      - amp-network
+    restart: unless-stopped
+
+  db:
+    image: mariadb:10.11
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass123
+      MYSQL_DATABASE: ampdb
+      MYSQL_USER: ampuser
+      MYSQL_PASSWORD: ampass456
+    volumes:
+      - ./data:/var/lib/mysql
+      - ./config/db-init:/docker-entrypoint-initdb.d:ro
+      - ./logs/mysql:/var/log/mysql:rw
+    ports:
+      - "3306:3306"
+    networks:
+      - amp-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+networks:
+  amp-network:
+    driver: bridge
+    name: amp_bridge
