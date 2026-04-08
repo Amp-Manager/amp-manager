@@ -89,7 +89,7 @@ export default function Timeline({ data, days = 30 }: TimelineProps) {
 
   if (data.length === 0) {
     return (
-      <div className="w-full h-48 flex items-center justify-center bg-base-200/50 rounded-xl border border-base-300 border-dashed">
+      <div className="w-full h-48 flex items-center justify-center bg-base-200/50 rounded-lg border border-base-300 border-dashed">
         <p className="text-center opacity-50">No timeline data available</p>
       </div>
     );

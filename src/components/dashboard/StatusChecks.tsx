@@ -86,11 +86,11 @@ export const StatusChecks: React.FC<StatusChecksProps> = ({ env, onRefresh }) =>
                 </button>
               ) : (
                 <button
-                  className="btn btn-xs btn-warning gap-1"
+                  className="btn btn-xs btn-neutral gap-1"
                   onClick={() => navigate('/docker')}
                 >
                   <Wrench className="h-3 w-3" />
-                  Restore
+                  Manage
                 </button>
               )
             )}

@@ -30,7 +30,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <p className="text-xs opacity-50">System environment status and health checks.</p>
       </div>
       <div className="justify-self-end">
-        <div className={`flex flex-col sm:flex-row items-center gap-4 bg-base-100 p-2 px-4 rounded-xl border shadow-sm transition-colors ${!error ? 'border-indigo-500/20' : 'border-error/20 opacity-70'}`}>
+        <div className={`flex flex-col sm:flex-row items-center gap-4 bg-base-100 p-2 px-4 rounded-lg border shadow-sm transition-colors ${!error ? 'border-indigo-500/20' : 'border-error/20 opacity-70'}`}>
           <div className="flex items-center gap-2">
             <Activity className={`w-4 h-4 ${live ? "text-green-500 animate-pulse" : "text-base-content/30"}`} />
             <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Live Monitoring</span>
