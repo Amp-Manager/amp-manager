@@ -77,6 +77,22 @@ export function useDashboard(user: string | null) {
       }
       setEnv(envData);
 
+      // Safeguard: Check if running without admin privileges
+      const isAdmin = envData.is_admin;
+      if (isAdmin === 'false' || isAdmin === false) {
+        toast.error(
+          "Run as Administrator.",
+          {
+            duration: 15000,
+            description: "AMP Manager requires elevated privileges to create SSL certificates.",
+            action: {
+              label: 'Learn More',
+              onClick: () => window.open('https://github.com/Amp-Manager/amp-manager', '_blank')
+            }
+          }
+        );
+      }
+
       // Save history and fetch stats
       const db = await initDB(user || "default");
       await configGuardService.captureFactorySettings(db);
