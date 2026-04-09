@@ -73,7 +73,7 @@ const TagManagerModal: React.FC<Props> = ({ onClose, onUpdate, getUsageCount }) 
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="w-full max-w-md bg-base-300/50 border border-base-100 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+            <div className="w-full max-w-md bg-base-300/50 border border-base-100 rounded-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
                 <div className="flex items-center justify-between bg-base-300 border-b border-base-100 shrink-0 p-4">
                     <h3 className="text-sm font-bold text-base-content">Manage Tags</h3>
                     <button onClick={onClose} className="text-base-content hover:text-white transition-colors"><X size={16}/></button>

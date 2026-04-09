@@ -67,7 +67,7 @@ const TagSelector: React.FC<Props> = ({ selectedTagIds, onTagsChange, getUsageCo
         <button 
           type="button"
           onClick={() => setShowDropdown(!showDropdown)}
-          className="flex items-center gap-1 text-xs bg-base-300 text-base-content hover:bg-base-200 hover:text-white text-base-content px-3 py-1.5 rounded-md border border-base-100 transition-colors"
+          className="flex items-center border border-base-100 cursor-pointer gap-1 text-xs bg-base-300 text-base-content hover:bg-base-200 hover:text-white text-base-content px-3 py-1.5 rounded-md transition-colors"
         >
           <Plus size={12} /> Add Tags
         </button>
@@ -85,7 +85,7 @@ const TagSelector: React.FC<Props> = ({ selectedTagIds, onTagsChange, getUsageCo
                 left: coords.left,
                 minWidth: '12rem'
               }}
-              className="bg-base-300 border border-base-100 rounded-xl shadow-2xl p-2 z-[10001] max-h-60 overflow-y-auto"
+              className="bg-base-300 border border-base-100 rounded-lg shadow-xl p-2 z-[10001] max-h-60 overflow-y-auto"
             >
               <button
                 type="button"
@@ -95,7 +95,7 @@ const TagSelector: React.FC<Props> = ({ selectedTagIds, onTagsChange, getUsageCo
                   setShowTagManager(true);
                   setShowDropdown(false);
                 }}
-                className="flex items-center gap-2 w-full p-2 text-xs font-bold text-base-content hover:bg-base-200 rounded mb-1 text-left"
+                className="flex items-center cursor-pointer gap-2 w-full p-2 text-xs font-bold text-base-content hover:bg-base-200 rounded mb-1 text-left"
               >
                 <Settings size={12} /> Manage Tags
               </button>
