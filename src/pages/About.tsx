@@ -79,11 +79,11 @@ export default function About() {
     },
     {
       q: "Why AMP Manager automatically generates my SSH key?",
-      a: "The key is stored only on your computer, and the private key is encrypted using your AMP Manager login. This enables secure integration with the tunneling service."
+      a: "The key is stored only on your computer, and the private key is encrypted using your AMP Manager login. This can be used to authenticate to a remote server as long as the server has your public key."
     },
     {
       q: "Is storing credentials in AMP Manager safe?",
-      a: "Yes — your credentials are encrypted locally using your AMP Manager login. The data never leaves your machine and cannot be accessed by other apps or websites. This process is fully automatic, secure, and designed so you don’t need to manage anything manually."
+      a: "Yes — your credentials are encrypted locally using your AMP Manager login. The data never leaves your machine and cannot be accessed by other apps or websites. This process is fully automatic, secure, and designed to enable a secure integration with your workflows."
     },
     {
       q: "Is AMP Manager a deployment platform?",
@@ -91,7 +91,7 @@ export default function About() {
     },
     {
       q: "Is AMP Manager safe for production?",
-      a: "Production environments involve scaling, security hardening, monitoring, backups, and global availability — responsibilities that should be managed with proper tooling and delegated to providers."
+      a: "Production environments involve scaling, security hardening, monitoring, backups, and global availability. These responsibilities are best handled with dedicated tools and trusted service providers."
     }
   ];
 

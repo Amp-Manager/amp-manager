@@ -451,7 +451,7 @@ export default function Credentials() {
         ))}
 
         {credentials.length === 0 && (
-          <div className="col-span-full text-center py-12 bg-base-200/50 rounded-xl border-2 border-dashed border-base-300">
+          <div className="col-span-full text-center py-12 bg-base-200/50 rounded-lg border-2 border-dashed border-base-300">
             <Key className="w-12 h-12 mx-auto text-base-content/30 mb-3" />
             <h3 className="font-bold text-lg opacity-70">No Credentials Found</h3>
             <p className="text-sm opacity-50">Add your first key to get started.</p>
@@ -462,7 +462,7 @@ export default function Credentials() {
       {/* Add Credential Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 rounded-[16px] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-base-300/80 p-6 rounded-xl shadow-2xl w-full max-w-md border border-base-100">
+          <div className="bg-base-300/80 p-6 rounded-lg shadow-2xl w-full max-w-md border border-base-100">
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Plus className="w-5 h-5 text-primary" /> New Credential
             </h3>

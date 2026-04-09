@@ -152,7 +152,7 @@ export function SettingsTunnelServices() {
         
         <div className="space-y-3">
           {TUNNEL_SERVICES.map(service => (
-            <div key={service.id} className="bg-base-200/50 border border-base-100 rounded-xl p-4">
+            <div key={service.id} className="bg-base-200/50 border border-base-100 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-sm">{service.name}</h3>
                 <div className="flex items-center gap-2">

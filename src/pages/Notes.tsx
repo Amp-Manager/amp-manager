@@ -90,7 +90,7 @@ export default function Notes() {
         </div>
         <div className="justify-end">
           <button className="btn btn-sm btn-primary" onClick={() => { resetForm(); openModal(); }}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Add Note
           </button>
 

@@ -90,7 +90,7 @@ export default function Docker() {
             <DockerSettingsPanel nextRefresh={nextRefresh} />
             
             {/* Docker Controls */}
-            <div className="flex flex-row items-center gap-4 bg-base-100 p-2 px-4 rounded-xl border shadow-sm transition-colors border-indigo-500/20">
+            <div className="flex flex-row items-center gap-4 bg-base-100 p-2 px-4 rounded-lg border shadow-sm transition-colors border-indigo-500/20">
               <div className="flex flex-col items-center align-center gap-1">
                 <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">Container</span>
                 <div className="flex flex-row gap-1">
@@ -153,7 +153,7 @@ export default function Docker() {
 
       <div className="alert alert-info alert-soft rounded-lg mt-8">
         <div className="flex gap-4">
-          <div className="bg-info/10 p-2 rounded-xl h-fit">
+          <div className="bg-info/10 p-2 rounded-lg h-fit">
             <Info className="w-5 h-5 text-info" />
           </div>
           <div>

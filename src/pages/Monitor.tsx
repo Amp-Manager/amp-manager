@@ -98,7 +98,7 @@ export default function Monitor() {
           <p className="text-xs opacity-50">Real-time monitoring with per-location metrics.</p>
         </div>
         <div className="justify-end">
-          <div className={`flex flex-col sm:flex-row items-center gap-4 bg-base-100 p-2 px-4 rounded-xl border shadow-sm transition-colors ${!error ? 'border-indigo-500/20' : 'border-error/20 opacity-70'}`}>
+          <div className={`flex flex-col sm:flex-row items-center gap-4 bg-base-100 p-2 px-4 rounded-lg border shadow-sm transition-colors ${!error ? 'border-indigo-500/20' : 'border-error/20 opacity-70'}`}>
             <div className="flex items-center gap-2">
               <Activity className={`w-4 h-4 ${!isPaused ? "text-green-500 animate-pulse" : "text-base-content/30"}`} />
               <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Live Status</span>
@@ -233,9 +233,9 @@ export default function Monitor() {
         </>
       )}
 
-      <div className="alert alert-info alert-soft p-4 rounded-xl">
+      <div className="alert alert-info alert-soft p-4 rounded-lg">
         <div className="flex gap-4">
-          <div className="bg-primary/10 p-2 rounded-xl h-fit">
+          <div className="bg-primary/10 p-2 rounded-lg h-fit">
             <Info className="w-5 h-5 text-primary" />
           </div>
           <div>

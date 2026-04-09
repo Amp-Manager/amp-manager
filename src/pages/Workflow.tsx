@@ -95,7 +95,7 @@ export default function WorkflowEditor() {
 
       <div className="flex-1 flex gap-4 min-h-0">
         {/* React Flow Canvas */}
-        <div className="flex-1 bg-base-200 rounded-xl border border-base-300 overflow-hidden relative shadow-inner">
+        <div className="flex-1 bg-base-200 rounded-lg border border-base-300 overflow-hidden relative shadow-inner">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -114,7 +114,7 @@ export default function WorkflowEditor() {
 
         {/* Inspector Panel */}
         {isInspectorOpen && (
-          <div className="w-80 bg-base-100 border border-base-300 rounded-xl p-4 shadow overflow-hidden">
+          <div className="w-80 bg-base-100 border border-base-300 rounded-lg p-4 shadow overflow-hidden">
             <WorkflowInspector 
               selectedNode={selectedNode}
               setIsInspectorOpen={setIsInspectorOpen}

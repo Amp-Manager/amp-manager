@@ -48,9 +48,9 @@ export default function TerminalPage() {
             <AppTerminal />
           </div>
           
-          <div className="alert alert-info alert-soft p-4 rounded-xl">
+          <div className="alert alert-info alert-soft p-4 rounded-lg">
             <div className="flex gap-4">
-              <div className="bg-primary/10 p-2 rounded-xl h-fit">
+              <div className="bg-primary/10 p-2 rounded-lg h-fit">
                 <Info className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -83,7 +83,7 @@ export default function TerminalPage() {
                     <button
                       key={c.label}
                       onClick={() => handleCommand(c.cmd)}
-                      className="flex items-center justify-between w-full text-left p-3 rounded-lg hover:bg-indigo-500/10 hover:text-indigo-400 transition-colors group relative"
+                      className="flex items-center justify-between w-full text-left p-3 rounded-lg hover:bg-primaey/10 hover:text-primary transition-colors group relative"
                     >
                       <div className="text-xs font-medium">{c.label}</div>
                       <div className="text-[10px] opacity-40 truncate">{c.desc}</div>
