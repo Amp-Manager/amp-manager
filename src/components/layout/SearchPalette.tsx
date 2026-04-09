@@ -111,7 +111,7 @@ const SearchPalette: React.FC<Props> = ({ items, categories, tags, onSelect, onC
 
       {/* Palette Container */}
       <div className="fixed top-12 left-1/2 -translate-x-1/2 w-full max-w-[600px] z-[70] animate-in fade-in slide-in-from-top-4 duration-200">
-        <div className="bg-base-300/70 backdrop-blur-xl border border-base-100 rounded-xl shadow-2xl/30 flex flex-col overflow-hidden">
+        <div className="bg-base-300/70 backdrop-blur-xl border border-base-100 rounded-lg shadow-2xl/30 flex flex-col overflow-hidden">
           
           {/* Input Section */}
           <div className="flex items-center gap-3 px-4 py-4 border-b border-base-100">

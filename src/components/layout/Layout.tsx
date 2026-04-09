@@ -173,7 +173,7 @@ function LayoutContent() {
             return;
           }
         } catch (err) {
-          // Silently skip sync - user can manually sync later
+          // Silently skip sync. User can manually sync later
         }
       }
       
@@ -187,7 +187,7 @@ function LayoutContent() {
         
         // Docker status toasts (sequential)
         if (!dockerStatus.docker) {
-          toast.warning('Docker is not running', {
+          toast.error('Docker is not running', {
             description: 'Start Docker Desktop to enable local development.',
             action: {
               label: 'Open Docker',

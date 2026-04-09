@@ -44,7 +44,7 @@ export function DatabaseList({
       {loading ? (
         <PageLoader />
       ) : filteredDbs.length === 0 ? (
-        <div className="bg-base-300 rounded-xl p-12 text-center border border-dashed border-base-100">
+        <div className="bg-base-300 rounded-lg p-12 text-center border border-dashed border-base-100">
           <Database className="h-12 w-12 opacity-10 mx-auto mb-4" />
           <p className="opacity-50">No databases found matching your search.</p>
         </div>

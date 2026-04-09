@@ -32,7 +32,7 @@ export function DockerSettingsPanel({ nextRefresh }: Props) {
   const isActuallyLive = live && isEngineRunning;
 
   return (
-    <div className={`flex flex-col sm:flex-row items-center gap-4 bg-base-100 p-2 px-3 rounded-xl border shadow-sm transition-colors ${isEngineRunning ? 'border-blue-500/20' : 'border-error/20 opacity-70'}`}>
+    <div className={`flex flex-col sm:flex-row items-center gap-4 bg-base-100 p-2 px-3 rounded-lg border shadow-sm transition-colors ${isEngineRunning ? 'border-blue-500/20' : 'border-error/20 opacity-70'}`}>
       <div className="flex items-center gap-2">
         <Activity className={`w-4 h-4 ${isActuallyLive ? "text-green-500 animate-pulse" : "text-base-content/30"}`} />
         <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Live Metrics</span>

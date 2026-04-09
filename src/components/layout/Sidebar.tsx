@@ -100,7 +100,7 @@ export function Sidebar() {
             <button
               type="button"
               onClick={logout}
-              className="btn btn-xs btn-soft btn-error w-full rounded-md px-4"
+              className="btn btn-xs btn-soft btn-error gap-4 w-full rounded-md px-4"
             >
               Logout <LogOut className="h-4 w-4" />
             </button>
