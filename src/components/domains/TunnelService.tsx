@@ -294,7 +294,7 @@ export default function TunnelService({ domain, onClose, onStatusChange }: Tunne
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-base-300/50 border border-base-100 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+      <div className="bg-base-300/50 border border-base-100 rounded-lg shadow-2xl max-w-md w-full overflow-hidden">
         <div className="p-4 border-b border-base-200 flex justify-between items-center bg-base-200/50">
           <h3 className="font-bold text-lg flex items-center gap-2">
             <ExternalLink className="h-5 w-5 text-primary" />
