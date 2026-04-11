@@ -1,7 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { toast } from '@/utils/toast';
 import { useAuth } from '@/context/AuthContext';
-import { initDB, logActivity } from '@/lib/db';
+import { loadTagsJSON, loadCredentialsJSON, saveCredentialsJSON, logActivityJSON } from '@/lib/db';
 import { encryptWithKey, decryptWithKey } from '@/lib/crypto';
 import { Key, Lock, Plus, Trash2, Eye, EyeOff, Save, Unlock, Loader2, Tag as TagIcon, Copy, Check } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -65,7 +65,7 @@ export default function Credentials() {
         try {
           const decrypted = await decryptWithKey(ampKey.iv, ampKey.secret, encryptionKey);
           const parsed = JSON.parse(decrypted);
-          setAmpSshKeyInfo({ publicKey: parsed.publicKey || '', keyPath: parsed.keyPath || '' });
+          setAmpSshKeyInfo({ publicKey: parsed.publicKey || '', keyPath: parsed.keyPath || '', fingerprint: parsed.fingerprint });
         } catch (e) {
           // Silently fail - SSH key info will not be displayed
         }
@@ -75,16 +75,13 @@ export default function Credentials() {
   }, [credentials, encryptionKey]);
 
   const loadTags = async () => {
-    if (!user) return;
-    const db = await initDB(user);
-    const t = await db.getAll('tags');
+    const t = await loadTagsJSON();
     setAllTags(t);
   };
 
   const loadCredentials = async () => {
     if (!user) return;
-    const db = await initDB(user);
-    const creds = await db.getAll('credentials');
+    const creds = await loadCredentialsJSON(user, encryptionKey || undefined);
     const normalized = creds.map(c => ({
       ...c,
       tags: Array.isArray(c.tags) ? c.tags : (typeof (c.tags as any) === 'string' ? (c.tags as any).split(',').map((t: string) => t.trim()).filter(Boolean) : [])
@@ -127,8 +124,6 @@ export default function Credentials() {
     }
 
     try {
-      const db = await initDB(user);
-      
       // Encrypt the secret using the session key
       const { iv, ciphertext } = await encryptWithKey(formData.secret, encryptionKey);
       
@@ -146,8 +141,10 @@ export default function Credentials() {
         updated_at: Date.now()
       };
 
-      await db.put('credentials', newCred);
-      await logActivity(db, 'create', 'credential', newCred.id, newCred.name);
+      const allCreds = await loadCredentialsJSON(user, encryptionKey);
+      allCreds.push(newCred);
+      await saveCredentialsJSON(user, allCreds, encryptionKey);
+      await logActivityJSON(user, 'create', 'credential', newCred.id, newCred.name);
       
       await loadCredentials();
       setIsModalOpen(false);
@@ -185,11 +182,12 @@ export default function Credentials() {
 
   const handleDelete = async (id: string) => {
     if (!user) return;
-    const db = await initDB(user);
     const credToDelete = credentials.find(c => c.id === id);
-    await db.delete('credentials', id);
+    const allCreds = await loadCredentialsJSON(user, encryptionKey);
+    const filtered = allCreds.filter(c => c.id !== id);
+    await saveCredentialsJSON(user, filtered, encryptionKey);
     if (credToDelete) {
-      await logActivity(db, 'delete', 'credential', id, credToDelete.name);
+      await logActivityJSON(user, 'delete', 'credential', id, credToDelete.name);
     }
     await loadCredentials();
     setConfirmDeleteId(null);

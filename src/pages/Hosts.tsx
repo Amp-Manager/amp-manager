@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { HardDrive, RefreshCw, AlertCircle, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "@/utils/toast";
 import { ampBridge } from "@/services/AMPBridge";
-import { initDB } from "@/lib/db";
+import { loadDomainStatusJSON } from "@/lib/db";
 import { useAuth } from "@/context/AuthContext";
 import type { HostEntry } from "@/types/entities";
 
@@ -24,9 +24,8 @@ export default function Hosts() {
       const hostsRes = await ampBridge.scanDomains();
       if (hostsRes.status !== 'ok') throw new Error(hostsRes.message || "Failed to scan domains");
       
-      // Get AMP domains from IndexedDB (reuses DomainStatus)
-      const db = await initDB(user || 'default');
-      const domainStatuses = await db.getAll('domain_status');
+      // Get AMP domains from JSON storage
+      const domainStatuses = await loadDomainStatusJSON();
       const ampDomains = new Set(domainStatuses.map((d: any) => d.domain));
       
       // Map HOSTS entries with source status

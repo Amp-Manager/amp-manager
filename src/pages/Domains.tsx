@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { RefreshCw, XCircle } from "lucide-react";
 import PageLoader from "@/components/layout/PageLoader";
 import { useBatchError } from "@/context/BatchErrorContext";
-import { initDB } from "@/lib/db";
+import { loadSitesJSON, saveSitesJSON, loadTagsJSON, loadTunnelsJSON, saveTunnelsJSON, loadActivityLogsJSON, loadSettingsJSON } from "@/lib/db";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/utils/toast";
 import { CreateSiteModal } from "@/components/layout/CreateSiteModal";
@@ -57,11 +57,10 @@ export default function Domains() {
       
       // Load IDE path and active tunnels
       if (user) {
-        const db = await initDB(user);
-        const savedIde = await db.get('settings', 'IDEpath');
-        if (savedIde) setIdePath(savedIde.value);
+        const settings = await loadSettingsJSON();
+        if (settings.IDEpath) setIdePath(settings.IDEpath);
         
-        const tunnels = await db.getAll('tunnels') as TunnelRecord[];
+        const tunnels = await loadTunnelsJSON() as TunnelRecord[];
         const tunnelMap = tunnels.reduce((acc: Record<string, TunnelRecord>, t: TunnelRecord) => {
           if (t.status === 'active') {
             acc[t.domain] = t;
@@ -81,12 +80,11 @@ export default function Domains() {
       
       const data = await ampBridge.listDomains();
       
-      const db = await initDB(user || "default");
-      const tags = await db.getAll('tags') as Tag[];
+      const tags = await loadTagsJSON() as Tag[];
       setAllTags(tags);
 
       if (data.status === 'ok' && Array.isArray(data.domains)) {
-        const existingSites = await db.getAll('sites') as SiteRecord[];
+        const existingSites = await loadSitesJSON() as SiteRecord[];
         const existingSitesMap = new Map(existingSites.map(s => [s.id, s]));
 
         const mappedDomains = await Promise.all(data.domains.map(async (d: any): Promise<Domain> => {
@@ -94,7 +92,6 @@ export default function Domains() {
           let existing = existingSitesMap.get(domainName);
           
           if (!existing) {
-            // Add to DB if it doesn't exist to track creation time
             const newSite: SiteRecord = {
               id: domainName,
               domain: domainName,
@@ -105,7 +102,8 @@ export default function Domains() {
               updated_at: Date.now()
             };
             try {
-              await db.put('sites', newSite);
+              existingSites.push(newSite);
+              await saveSitesJSON(existingSites);
               existing = newSite;
             } catch (e) {
               // Silently fail - domain will still be displayed
@@ -139,8 +137,7 @@ export default function Domains() {
   useEffect(() => {
     const fetchTimelineData = async () => {
       try {
-        const db = await initDB(user || "default");
-        const activityLogs = await db.getAll('activity_logs');
+        const activityLogs = await loadActivityLogsJSON(user || "default");
         
         const events: any[] = activityLogs.map(log => ({
           id: log.id,
@@ -240,8 +237,11 @@ export default function Domains() {
     try {
       await ampBridge.os.updateSpawnedProcess(tunnel.processId, 'exit');
       
-      const db = await initDB(user);
-      await db.delete('tunnels', domainName);
+      if (user) {
+        const tunnels = await loadTunnelsJSON(user);
+        const filtered = tunnels.filter(t => t.domain !== domainName);
+        await saveTunnelsJSON(user, filtered);
+      }
       
       toast.success(`Tunnel stopped for ${domainName}`);
       fetchDomains();
@@ -254,8 +254,6 @@ export default function Domains() {
     if (!ampBridge.isAvailable()) return;
     
     try {
-      const db = await initDB(user);
-      
       for (const [domainName, tunnel] of Object.entries(activeTunnels)) {
         try {
           const t = tunnel as TunnelRecord;
@@ -265,7 +263,9 @@ export default function Domains() {
         }
       }
       
-      await db.clear('tunnels');
+      if (user) {
+        await saveTunnelsJSON(user, []);
+      }
       toast.success(`Stopped ${Object.keys(activeTunnels).length} tunnel(s)`);
       fetchDomains();
     } catch (err) {

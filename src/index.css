@@ -197,16 +197,21 @@ main > div {
 
 /* AMP Toast Styling */
 /* .amp-toast { @apply flex items-start gap-3 p-4 border border-2 rounded-lg border shadow-lg; } */
-.amp-toast-success { @apply border-success/30 bg-success/10; }
+.amp-toast-warning { @apply border-warning/30 bg-base-300; }
+.amp-toast-info { @apply border-info/30 bg-info/10; }
+.amp-toast-description { @apply text-white opacity-80 mt-1; }
+.amp-toast-action { @apply btn btn-xs btn-soft shrink-0; }
+.amp-toast-success { 
+  --btn-bg:color-mix(in oklab, var(--btn-color,var(--color-success)) 8%, var(--color-base-300));
+  background: var(--btn-bg)!important;
+  border-color: var(--color-success)!important;
+  color: var(--color-success)!important; 
+}
 .amp-toast-error { 
   background: var(--color-base-300)!important;
   border-color: var(--color-error)!important;
   color: var(--color-error)!important; 
 }
-.amp-toast-warning { @apply border-warning/30 bg-base-300; }
-.amp-toast-info { @apply border-info/30 bg-info/10; }
-.amp-toast-description { @apply text-xs opacity-70 mt-1; }
-.amp-toast-action { @apply btn btn-xs btn-soft shrink-0; }
 
 .amp-toast-error > .amp-toast-action {
   --btn-bg:color-mix(in oklab, var(--btn-color,var(--color-base-content)) 8%, var(--color-base-300));

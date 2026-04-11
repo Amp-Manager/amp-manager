@@ -83,10 +83,10 @@ export default function TerminalPage() {
                     <button
                       key={c.label}
                       onClick={() => handleCommand(c.cmd)}
-                      className="flex items-center justify-between w-full text-left p-3 rounded-lg hover:bg-primaey/10 hover:text-primary transition-colors group relative"
+                      className="flex items-center justify-between w-full text-left p-3 rounded-lg hover:bg-primary/20 hover:text-primary transition-colors group relative"
                     >
                       <div className="text-xs font-medium">{c.label}</div>
-                      <div className="text-[10px] opacity-40 truncate">{c.desc}</div>
+                      <div className="text-[10px] opacity-80 truncate">{c.desc}</div>
                     </button>
                   ))}
                 </div>
