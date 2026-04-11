@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Save, Loader2 } from 'lucide-react';
-import { initDB } from '@/lib/db';
+import { loadSettingsJSON, saveSettingsJSON } from '@/lib/db';
 import { toast } from '@/utils/toast';
 import { useAuth } from '@/context/AuthContext';
 
@@ -15,13 +15,10 @@ export default function SettingsDatabaseTool() {
     const fetchDbToolSettings = async () => {
       if (!user) return;
       try {
-        const db = await initDB(user);
+        const settings = await loadSettingsJSON(user);
         
-        const savedDbTool = await db.get('settings', 'DBToolPath');
-        if (savedDbTool) setDbToolPath(savedDbTool.value);
-
-        const savedDbToolType = await db.get('settings', 'DBToolType');
-        if (savedDbToolType) setDbToolType(savedDbToolType.value);
+        if (settings.DBToolPath) setDbToolPath(settings.DBToolPath);
+        if (settings.DBToolType) setDbToolType(settings.DBToolType);
       } catch (err) {
         // Silently fail - settings will use defaults
       } finally {
@@ -35,11 +32,10 @@ export default function SettingsDatabaseTool() {
     if (!user) return;
     setIsSavingDbTool(true);
     try {
-      const db = await initDB(user);
-      await Promise.all([
-        db.put('settings', { key: 'DBToolPath', value: dbToolPath }),
-        db.put('settings', { key: 'DBToolType', value: dbToolType })
-      ]);
+      const settings = await loadSettingsJSON(user);
+      settings.DBToolPath = dbToolPath;
+      settings.DBToolType = dbToolType;
+      await saveSettingsJSON(user, settings);
       toast.success("Database tool settings saved successfully");
     } catch (err) {
       toast.error("Failed to save DB tool settings");

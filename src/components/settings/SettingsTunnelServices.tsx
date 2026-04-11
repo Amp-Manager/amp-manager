@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Save, Globe, Square, Key, AlertCircle } from 'lucide-react';
-import { initDB } from '@/lib/db';
+import { loadSettingsJSON, saveSettingsJSON, loadTunnelsJSON, saveTunnelsJSON } from '@/lib/db';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/utils/toast';
 import { ampBridge } from '@/services/AMPBridge';
@@ -40,7 +40,6 @@ export function SettingsTunnelServices() {
     const fetchData = async () => {
       try {
         if (!user) return;
-        const db = await initDB(user);
         
         // Check SSH key status
         if (ampBridge.isAvailable()) {
@@ -53,15 +52,13 @@ export function SettingsTunnelServices() {
         }
         
         // Load current tunnel settings
+        const settings = await loadSettingsJSON(user);
         const active: Record<string, boolean> = {};
         const templates: Record<string, string> = {};
         
         for (const t of TUNNEL_SERVICES) {
-          const activeSetting = await db.get('settings', `tunnel_active_${t.id}`);
-          if (activeSetting) active[t.id] = activeSetting.value;
-          
-          const templateSetting = await db.get('settings', `tunnel_template_${t.id}`);
-          templates[t.id] = templateSetting?.value || t.defaultCommand;
+          active[t.id] = settings[`tunnel_active_${t.id}`] || false;
+          templates[t.id] = settings[`tunnel_template_${t.id}`] || t.defaultCommand;
         }
         
         setTunnelActive(active);
@@ -77,10 +74,10 @@ export function SettingsTunnelServices() {
     if (!user) return;
     setIsSavingTunnels(prev => ({ ...prev, [serviceId]: true }));
     try {
-      const db = await initDB(user);
-      
-      await db.put('settings', { key: `tunnel_active_${serviceId}`, value: tunnelActive[serviceId] || false });
-      await db.put('settings', { key: `tunnel_template_${serviceId}`, value: tunnelTemplates[serviceId] || '' });
+      const settings = await loadSettingsJSON(user);
+      settings[`tunnel_active_${serviceId}`] = tunnelActive[serviceId] || false;
+      settings[`tunnel_template_${serviceId}`] = tunnelTemplates[serviceId] || '';
+      await saveSettingsJSON(user, settings);
       
       toast.success(`${TUNNEL_SERVICES.find(s => s.id === serviceId)?.name} settings saved`);
     } catch (err) {
@@ -93,8 +90,7 @@ export function SettingsTunnelServices() {
   const handleStopAllTunnels = async () => {
     if (!user || !ampBridge.isAvailable()) return;
     try {
-      const db = await initDB(user);
-      const tunnels = await db.getAll('tunnels');
+      const tunnels = await loadTunnelsJSON(user);
       
       for (const tunnel of tunnels) {
         if (tunnel.status === 'active' && tunnel.processId) {
@@ -106,7 +102,7 @@ export function SettingsTunnelServices() {
         }
       }
       
-      await db.clear('tunnels');
+      await saveTunnelsJSON(user, []);
       toast.success("All active tunnels have been stopped");
     } catch (err) {
       toast.error("Failed to stop all tunnels");

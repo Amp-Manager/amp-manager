@@ -2,8 +2,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { X, Plus, AlertTriangle } from 'lucide-react';
 import { Tag } from '../../types';
-import { initDB } from '../../lib/db';
-import { useAuth } from '../../context/AuthContext';
+import { loadTagsJSON, saveTagsJSON } from '../../lib/db';
 import TagBadge from './TagBadge';
 
 // Lazy load palette
@@ -21,22 +20,19 @@ const TagManagerModal: React.FC<Props> = ({ onClose, onUpdate, getUsageCount }) 
     const [name, setName] = useState('');
     const [color, setColor] = useState('blue');
     const [error, setError] = useState<string | null>(null);
-    const { user } = useAuth();
 
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
     useEffect(() => {
         const load = async () => {
-            if (!user) return;
-            const db = await initDB(user);
-            const t = await db.getAll('tags');
+            const t = await loadTagsJSON();
             setTags(t);
         };
         load();
-    }, [user]);
+    }, []);
 
     const handleCreate = async () => {
-        if(!name.trim() || !user) return;
+        if(!name.trim()) return;
         setError(null);
 
         if (tags.some(t => t.name.toLowerCase() === name.toLowerCase())) {
@@ -45,15 +41,15 @@ const TagManagerModal: React.FC<Props> = ({ onClose, onUpdate, getUsageCount }) 
         }
 
         const newTag = { id: `tag_${crypto.randomUUID()}`, name, color, created_at: Date.now() };
-        const db = await initDB(user);
-        await db.put('tags', newTag);
+        const allTags = await loadTagsJSON();
+        allTags.push(newTag);
+        await saveTagsJSON(allTags);
         setTags([...tags, newTag]);
         setName('');
         if (onUpdate) onUpdate();
     };
 
     const handleDelete = async (id: string) => {
-        if (!user) return;
         const usageCount = getUsageCount(id);
         if (usageCount > 0) {
             setConfirmDeleteId(id);
@@ -63,9 +59,9 @@ const TagManagerModal: React.FC<Props> = ({ onClose, onUpdate, getUsageCount }) 
     };
 
     const executeDelete = async (id: string) => {
-        if (!user) return;
-        const db = await initDB(user);
-        await db.delete('tags', id);
+        const allTags = await loadTagsJSON();
+        const filtered = allTags.filter(t => t.id !== id);
+        await saveTagsJSON(filtered);
         setTags(tags.filter(t => t.id !== id));
         if (onUpdate) onUpdate();
         setConfirmDeleteId(null);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, Save, RotateCcw } from 'lucide-react';
 import { toast } from '@/utils/toast';
 import { useAuth } from '@/context/AuthContext';
-import { initDB } from '@/lib/db';
+import { loadSettingsJSON, saveSettingsJSON } from '@/lib/db';
 
 export function SettingsSyncInterval() {
   const { user } = useAuth();
@@ -16,16 +16,14 @@ export function SettingsSyncInterval() {
       if (!user) return;
       
       try {
-        const db = await initDB(user);
+        const settings = await loadSettingsJSON(user);
         
-        const intervalSetting = await db.get('settings', 'syncIntervalHours');
-        if (intervalSetting) {
-          setSyncIntervalHours(Number(intervalSetting.value) || 6);
+        if (settings.syncIntervalHours) {
+          setSyncIntervalHours(Number(settings.syncIntervalHours) || 6);
         }
 
-        const forceSetting = await db.get('settings', 'forceSyncOnStartup');
-        if (forceSetting !== undefined) {
-          setForceSyncOnStartup(forceSetting.value ?? true);
+        if (settings.forceSyncOnStartup !== undefined) {
+          setForceSyncOnStartup(settings.forceSyncOnStartup ?? true);
         }
       } catch (err) {
         // Silently fail - settings will use defaults
@@ -42,17 +40,10 @@ export function SettingsSyncInterval() {
     
     setIsSaving(true);
     try {
-      const db = await initDB(user);
-      
-      await db.put('settings', { 
-        key: 'syncIntervalHours', 
-        value: syncIntervalHours 
-      });
-      
-      await db.put('settings', { 
-        key: 'forceSyncOnStartup', 
-        value: forceSyncOnStartup 
-      });
+      const settings = await loadSettingsJSON(user);
+      settings.syncIntervalHours = syncIntervalHours;
+      settings.forceSyncOnStartup = forceSyncOnStartup;
+      await saveSettingsJSON(user, settings);
       
       toast.success('Sync settings saved');
     } catch (err) {

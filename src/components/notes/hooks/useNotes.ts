@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "@/utils/toast";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
-import { initDB, logActivity } from "@/lib/db";
+import { 
+  loadNotesJSON, saveNotesJSON, 
+  loadSitesJSON, 
+  loadTagsJSON, 
+  logActivityJSON 
+} from "@/lib/db";
 import { encryptWithKey, decryptWithKey } from "@/lib/crypto";
 import { useBatchError } from "@/context/BatchErrorContext";
 import { useAuth } from "@/context/AuthContext";
@@ -34,18 +39,15 @@ export function useNotes() {
   });
 
   const loadTags = useCallback(async () => {
-    if (!user) return;
-    const db = await initDB(user);
-    const t = await db.getAll('tags');
+    const t = await loadTagsJSON();
     setAllTags(t);
-  }, [user]);
+  }, []);
 
   const loadNotes = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
     try {
-      const db = await initDB(user);
-      const allNotes = await db.getAll('notes');
+      const allNotes = await loadNotesJSON(user, encryptionKey || undefined);
       const normalizedNotes = allNotes.map(n => ({
         ...n,
         tags: Array.isArray(n.tags) ? n.tags : (typeof (n.tags as any) === 'string' ? (n.tags as any).split(',').map((t: string) => t.trim()).filter(Boolean) : [])
@@ -56,18 +58,16 @@ export function useNotes() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, handleError]);
+  }, [user, encryptionKey, handleError]);
 
   const loadSites = useCallback(async () => {
-    if (!user) return;
     try {
-      const db = await initDB(user);
-      const allSites = await db.getAll('sites');
+      const allSites = await loadSitesJSON();
       setSites(allSites);
     } catch (err) {
       // Silently fail - sites dropdown will be empty
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     loadNotes();
@@ -79,7 +79,6 @@ export function useNotes() {
     if (location.state?.domain && sites.length > 0) {
       const site = sites.find(s => s.domain === location.state.domain);
       setFormData(prev => ({ ...prev, site_id: site?.id || "none" }));
-      // The modal opening will be handled by the component using this hook
     }
   }, [location.state, sites]);
 
@@ -95,7 +94,6 @@ export function useNotes() {
   const handleSaveNote = async () => {
     if (!user) return;
     try {
-      const db = await initDB(user);
       const timestamp = Date.now();
       
       let noteData: any = {
@@ -123,10 +121,18 @@ export function useNotes() {
         noteData.content = formData.content;
       }
 
-      await db.put('notes', noteData);
-      await logActivity(db, editingNote ? 'update' : 'create', 'note', noteData.id, noteData.title);
+      const allNotes = await loadNotesJSON(user, encryptionKey || undefined);
+      const existingIndex = allNotes.findIndex(n => n.id === noteData.id);
+      if (existingIndex >= 0) {
+        allNotes[existingIndex] = noteData;
+      } else {
+        allNotes.push(noteData);
+      }
+      await saveNotesJSON(user, allNotes, encryptionKey || undefined);
+      
+      await logActivityJSON(user, editingNote ? 'update' : 'create', 'note', noteData.id, noteData.title);
       await loadNotes();
-      return true; // Success
+      return true;
     } catch (err) {
       handleError(err);
       return false;
@@ -136,13 +142,14 @@ export function useNotes() {
   const handleDelete = async (id: string) => {
     if (!user) return;
     try {
-      const db = await initDB(user);
       const noteToDelete = notes.find(n => n.id === id);
       
-      await db.delete('notes', id);
+      const allNotes = await loadNotesJSON(user, encryptionKey || undefined);
+      const filtered = allNotes.filter(n => n.id !== id);
+      await saveNotesJSON(user, filtered, encryptionKey || undefined);
       
       if (noteToDelete) {
-        await logActivity(db, 'delete', 'note', id, noteToDelete.title);
+        await logActivityJSON(user, 'delete', 'note', id, noteToDelete.title);
       }
       
       setNotes(notes.filter(n => n.id !== id));

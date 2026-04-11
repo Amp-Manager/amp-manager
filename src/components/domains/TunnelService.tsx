@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Play, Square, Copy, Loader2, AlertTriangle, ExternalLink, Settings } from "lucide-react";
-import { initDB } from "@/lib/db";
+import { loadSettingsJSON, saveSettingsJSON, loadTunnelsJSON, saveTunnelsJSON, loadCredentialsJSON } from "@/lib/db";
 import { useAuth } from "@/context/AuthContext";
 import { decryptWithKey } from "@/lib/crypto";
 import { toast } from "@/utils/toast";
@@ -69,13 +69,12 @@ export default function TunnelService({ domain, onClose, onStatusChange }: Tunne
     const checkActiveTunnel = async () => {
       if (!user) return;
       try {
-        const db = await initDB(user);
+        const settings = await loadSettingsJSON(user);
         
         // Fetch active tunnel providers from settings in parallel
         const settingsResults = await Promise.all(
           TUNNEL_PROFILES.map(async (p) => {
-            const setting = await db.get('settings', `tunnel_active_${p.id}`);
-            return { id: p.id, active: setting && setting.value === true };
+            return { id: p.id, active: settings[`tunnel_active_${p.id}`] === true };
           })
         );
 
@@ -90,7 +89,8 @@ export default function TunnelService({ domain, onClose, onStatusChange }: Tunne
           setActiveProfile(enabledTunnels[0]);
         }
 
-        const tunnel = await db.get('tunnels', domain);
+        const tunnels = await loadTunnelsJSON(user);
+        const tunnel = tunnels.find(t => t.domain === domain);
         if (!mounted) return;
 
         if (tunnel && tunnel.status === 'active') {
@@ -124,22 +124,19 @@ export default function TunnelService({ domain, onClose, onStatusChange }: Tunne
     let timeoutId: any;
     
     try {
-      const db = await initDB(user);
-      
       // Get executable path from settings
-      const exeSetting = await db.get('settings', `tunnel_exe_${activeProfile}`);
-      const templateSetting = await db.get('settings', `tunnel_template_${activeProfile}`);
+      const settings = await loadSettingsJSON(user);
       const profile = TUNNEL_PROFILES.find(p => p.id === activeProfile);
       
       if (!profile) throw new Error("Profile not found");
       
-      const exePath = exeSetting?.value || profile.defaultExe;
-      const template = templateSetting?.value;
+      const exePath = settings[`tunnel_exe_${activeProfile}`] || profile.defaultExe;
+      const template = settings[`tunnel_template_${activeProfile}`];
       const port = 8080;
       
       // Get token from credentials if available
       let token = undefined;
-      const creds = await db.getAll('credentials');
+      const creds = await loadCredentialsJSON(user, encryptionKey || undefined);
       
       // Get token for tunnel service
       const tokenCred = creds.find(c => c.type === `tunnel_${activeProfile}`);
@@ -211,15 +208,23 @@ export default function TunnelService({ domain, onClose, onStatusChange }: Tunne
               setProcessId(pid);
               setStatus('active');
               
-              // Save to IndexedDB
-              await db.put('tunnels', {
+              // Save to JSON storage
+              const tunnels = await loadTunnelsJSON(user);
+              const existingIndex = tunnels.findIndex(t => t.domain === domain);
+              const newTunnel = {
                 domain,
                 profile: activeProfile,
                 publicUrl: url,
                 processId: pid,
                 startedAt: Date.now(),
                 status: 'active'
-              });
+              };
+              if (existingIndex >= 0) {
+                tunnels[existingIndex] = newTunnel;
+              } else {
+                tunnels.push(newTunnel);
+              }
+              await saveTunnelsJSON(user, tunnels);
               
               // Remove listener once we have the URL
               ampBridge.events.off('spawnedProcess', handleOutput);
@@ -279,8 +284,9 @@ export default function TunnelService({ domain, onClose, onStatusChange }: Tunne
     try {
       await ampBridge.os.updateSpawnedProcess(processId, 'exit');
       
-      const db = await initDB(user);
-      await db.delete('tunnels', domain);
+      const tunnels = await loadTunnelsJSON(user);
+      const filtered = tunnels.filter(t => t.domain !== domain);
+      await saveTunnelsJSON(user, filtered);
       
       setStatus('idle');
       setPublicUrl(null);

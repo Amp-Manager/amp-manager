@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Code, Save, Loader2 } from 'lucide-react';
-import { initDB } from '@/lib/db';
+import { loadSettingsJSON, saveSettingsJSON } from '@/lib/db';
 import { toast } from '@/utils/toast';
 import { useAuth } from '@/context/AuthContext';
 
@@ -14,9 +14,8 @@ export default function SettingsIde() {
     const fetchIdePath = async () => {
       if (!user) return;
       try {
-        const db = await initDB(user);
-        const savedIde = await db.get('settings', 'IDEpath');
-        if (savedIde) setIdePath(savedIde.value);
+        const settings = await loadSettingsJSON(user);
+        if (settings.IDEpath) setIdePath(settings.IDEpath);
       } catch (err) {
         // Silently fail - IDE path will be empty
       } finally {
@@ -30,8 +29,9 @@ export default function SettingsIde() {
     if (!user) return;
     setIsSavingIde(true);
     try {
-      const db = await initDB(user);
-      await db.put('settings', { key: 'IDEpath', value: idePath });
+      const settings = await loadSettingsJSON(user);
+      settings.IDEpath = idePath;
+      await saveSettingsJSON(user, settings);
       toast.success("IDE path saved successfully");
     } catch (err) {
       toast.error("Failed to save IDE path");

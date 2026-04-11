@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, Suspense, lazy } from "react";
 import { Plus, Loader2, Check, X, AlertCircle, Globe, AlertTriangle } from "lucide-react";
 import { toast } from "@/utils/toast";
 import { AmpStep } from "@/types/amp";
-import { initDB, logActivity } from "@/lib/db";
+import { loadSitesJSON, saveSitesJSON, logActivityJSON } from "@/lib/db";
 import { useAuth } from "@/context/AuthContext";
 import { ampBridge } from "@/services/AMPBridge";
 
@@ -44,8 +44,7 @@ export function CreateSiteModal({ isOpen, onClose, onSuccess }: CreateSiteModalP
   const loadUsage = async () => {
     if (!user) return;
     try {
-      const db = await initDB(user);
-      const sites = await db.getAll('sites');
+      const sites = await loadSitesJSON();
       const counts: Record<string, number> = {};
       sites.forEach(s => {
         s.tags?.forEach(t => {
@@ -141,10 +140,9 @@ export function CreateSiteModal({ isOpen, onClose, onSuccess }: CreateSiteModalP
           
           if (user) {
             try {
-              const db = await initDB(user);
               const env = await ampBridge.envCheck();
               const projectRoot = env.project_root || '';
-              await db.put('sites', {
+              const newSite = {
                 id: fullDomain,
                 domain: fullDomain,
                 path: result.folder || `${projectRoot}\\www\\${fullDomain}`,
@@ -152,8 +150,11 @@ export function CreateSiteModal({ isOpen, onClose, onSuccess }: CreateSiteModalP
                 is_encrypted: false,
                 created_at: Date.now(),
                 updated_at: Date.now()
-              });
-              await logActivity(db, 'create', 'domain', fullDomain, fullDomain);
+              };
+              const sites = await loadSitesJSON();
+              sites.push(newSite);
+              await saveSitesJSON(sites);
+              await logActivityJSON(user, 'create', 'domain', fullDomain, fullDomain);
             } catch (e) {
               // Silently fail - site was created successfully
             }

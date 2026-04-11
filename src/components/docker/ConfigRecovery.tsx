@@ -1,20 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, RotateCcw, Camera, Trash2, Check, AlertTriangle, Clock, FileText } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { configGuardService, ESSENTIAL_FILES, ConfigBackup } from '@/services/ConfigGuardService';
 import { toast } from '@/utils/toast';
 import { format } from 'date-fns';
 
 export function ConfigRecovery() {
-  const { db } = useAuth();
   const [backups, setBackups] = useState<ConfigBackup[]>([]);
   const [loading, setLoading] = useState(false);
   const [confirmRestore, setConfirmRestore] = useState<string | null>(null);
 
   const fetchBackups = async () => {
-    if (!db) return;
     try {
-      const data = await configGuardService.getBackups(db);
+      const data = await configGuardService.getBackups();
       setBackups(data);
     } catch (err) {
       // Silently fail - backups table will show empty
@@ -23,13 +20,12 @@ export function ConfigRecovery() {
 
   useEffect(() => {
     fetchBackups();
-  }, [db]);
+  }, []);
 
   const handleRestore = async (backup: ConfigBackup) => {
-    if (!db) return;
     setLoading(true);
     try {
-      await configGuardService.restoreFile(db, backup.id);
+      await configGuardService.restoreFile(backup.id);
       toast.success(`Restored ${backup.filename} to ${backup.type} version`);
       setConfirmRestore(null);
     } catch (err: any) {
@@ -40,10 +36,9 @@ export function ConfigRecovery() {
   };
 
   const handleSnapshot = async (file: string) => {
-    if (!db) return;
     setLoading(true);
     try {
-      await configGuardService.createSnapshot(db, file);
+      await configGuardService.createSnapshot(file);
       toast.success(`Snapshot created for ${file}`);
       await fetchBackups();
     } catch (err: any) {
@@ -54,13 +49,12 @@ export function ConfigRecovery() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!db) return;
     try {
-      await configGuardService.deleteBackup(db, id);
+      await configGuardService.deleteBackup(id);
       toast.success("Snapshot deleted");
       await fetchBackups();
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(`Delete failed: ${err.message}`);
     }
   };
 

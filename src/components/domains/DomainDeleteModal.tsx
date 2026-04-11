@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Trash2, Check, X, AlertTriangle, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { initDB, logActivity } from '@/lib/db';
+import { loadSiteConfigsJSON, saveSiteConfigsJSON, loadSitesJSON, saveSitesJSON, logActivityJSON } from '@/lib/db';
 import { toast } from '@/utils/toast';
 import { ampBridge } from '@/services/AMPBridge';
 
@@ -63,19 +63,17 @@ export function DomainDeleteModal({ domain, isOpen, onClose, onSuccess }: Domain
         }
       }
 
-      const db = await initDB(user || "default");
-      const configKeys = await db.getAllKeysFromIndex('site_configs', 'by-site', domain.id);
-      const tx = db.transaction(['site_configs', 'sites'], 'readwrite');
+      const configs = await loadSiteConfigsJSON();
+      const filteredConfigs = configs.filter(c => c.site_id !== domain.id);
+      await saveSiteConfigsJSON(filteredConfigs);
       
-      const deletePromises = configKeys.map(key => tx.objectStore('site_configs').delete(key));
-      deletePromises.push(tx.objectStore('sites').delete(domain.id));
-      
-      await Promise.all([
-        ...deletePromises,
-        tx.done
-      ]);
+      const sites = await loadSitesJSON();
+      const filteredSites = sites.filter(s => s.id !== domain.id);
+      await saveSitesJSON(filteredSites);
 
-      await logActivity(db, 'delete', 'domain', domain.id, domain.name);
+      if (user) {
+        await logActivityJSON(user, 'delete', 'domain', domain.id, domain.name);
+      }
 
       toast.success(`Domain ${domain.name} deleted successfully`);
       onSuccess();

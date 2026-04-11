@@ -4,48 +4,70 @@ import { Loader2, RefreshCw, ExternalLink, CheckCircle, AlertTriangle } from 'lu
 import { ampBridge } from '@/services/AMPBridge';
 import { toast } from '@/utils/toast';
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
+
 export default function SettingsVersionUpdate() {
   const [appVersion, setAppVersion] = useState<string>('Loading...');
   const [appBuild, setAppBuild] = useState<string>('Loading...');
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'uptodate' | 'available' | 'error'>('idle');
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchVersion = async () => {
+  const fetchVersionWithRetry = async (retries = MAX_RETRIES) => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         if (ampBridge.isAvailable()) {
           const vRes = await ampBridge.version();
           if (vRes && vRes.status === 'ok') {
             setAppVersion(vRes.version || 'Unknown');
             setAppBuild(vRes.build || 'Unknown');
+            return;
           }
         } else {
           setAppVersion('Browser Mode');
           setAppBuild('Browser Mode');
+          return;
         }
       } catch (err) {
-        setAppVersion('Error');
-        setAppBuild('Error');
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        }
       }
-    };
-    fetchVersion();
+    }
+    setAppVersion('Unavailable');
+    setAppBuild('Unavailable');
+  };
+
+  useEffect(() => {
+    fetchVersionWithRetry();
   }, []);
 
   const checkForUpdates = async () => {
     setUpdateStatus('checking');
-    try {
-      const response = await fetch("https://api.github.com/repos/amp-manager/amp-manager/releases/latest");
-      if (!response.ok) throw new Error('Failed to fetch');
-      const data = await response.json();
-      if (data.tag_name) {
-        const latest = data.tag_name.replace('v', '');
-        setLatestVersion(latest);
-        setUpdateStatus(latest !== appVersion ? 'available' : 'uptodate');
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const response = await fetch("https://api.github.com/repos/amp-manager/amp-manager/releases/latest");
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        if (data.tag_name) {
+          const latest = data.tag_name.replace('v', '');
+          setLatestVersion(latest);
+          setUpdateStatus(latest !== appVersion ? 'available' : 'uptodate');
+          return;
+        }
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error('Unknown error');
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        }
       }
-    } catch (err) {
-      setUpdateStatus('error');
-      toast.error("Failed to check for updates");
     }
+    
+    setUpdateStatus('error');
+    setLatestVersion(null);
+    toast.error(lastError?.message || "Failed to check for updates");
   };
 
   const openGitHub = () => {

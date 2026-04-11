@@ -7,13 +7,13 @@ import { SystemPreloader } from "./SystemPreloader";
 import { useAuth } from "@/context/AuthContext";
 import { SyncProvider, useSync } from "@/context/SyncContext";
 import { useProjectSync } from "@/hooks/useProjectSync";
-import { initDB } from "@/lib/db";
+import { loadSitesJSON, loadTagsJSON, loadNotesJSON, loadCredentialsJSON, loadWorkflowsJSON, loadSettingsJSON } from "@/lib/db";
 import SearchPalette, { SearchableItem } from "./SearchPalette";
 import { ampBridge } from "@/services/AMPBridge";
 import { toast } from "@/utils/toast";
 
 function LayoutContent() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, encryptionKey } = useAuth();
   const { isSynced, setIsSynced, forceSyncOnStartup } = useSync();
   const { steps, performSync } = useProjectSync();
   const [isPreloaderOpen, setIsPreloaderOpen] = useState(false);
@@ -84,14 +84,15 @@ function LayoutContent() {
   ], []);
 
   const fetchSearchableItems = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !user) return;
     try {
-      const db = await initDB(user || "default");
-      const sites = await db.getAll('sites');
-      const notes = await db.getAll('notes');
-      const credentials = await db.getAll('credentials');
-      const workflows = await db.getAll('workflows');
-      const tags = await db.getAll('tags');
+      const [sites, notes, credentials, workflows, tags] = await Promise.all([
+        loadSitesJSON(),
+        loadNotesJSON(user, encryptionKey || undefined),
+        loadCredentialsJSON(user, encryptionKey || undefined),
+        loadWorkflowsJSON(),
+        loadTagsJSON()
+      ]);
       
       setDbTags(tags);
 
@@ -144,7 +145,7 @@ function LayoutContent() {
     } catch (err) {
       // Silently fail - search palette will have fewer items
     }
-  }, [isAuthenticated, user, navigate, navItems]);
+  }, [isAuthenticated, user, encryptionKey, navigate, navItems]);
 
   useEffect(() => {
     fetchSearchableItems();
@@ -160,12 +161,10 @@ function LayoutContent() {
       // If not forced to sync, check last sync timestamp
       if (!forceSyncOnStartup) {
         try {
-          const db = await initDB(user);
-          const lastSyncSetting = await db.get('settings', 'lastSyncTimestamp');
-          const intervalSetting = await db.get('settings', 'syncIntervalHours');
+          const settings = await loadSettingsJSON(user);
           
-          const lastSync = lastSyncSetting?.value || 0;
-          const intervalHours = intervalSetting?.value || 6;
+          const lastSync = settings.lastSyncTimestamp || 0;
+          const intervalHours = settings.syncIntervalHours || 6;
           const hoursSinceSync = (Date.now() - lastSync) / (1000 * 60 * 60);
           
           if (hoursSinceSync < intervalHours) {

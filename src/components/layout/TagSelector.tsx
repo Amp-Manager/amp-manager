@@ -3,7 +3,7 @@ import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Settings, Check, Tag as TagIcon, X } from 'lucide-react';
 import { Tag } from '../../types';
-import { initDB } from '../../lib/db';
+import { loadTagsJSON } from '../../lib/db';
 import { useAuth } from '../../context/AuthContext';
 import { COLOR_MAP } from './uiConstants';
 
@@ -25,9 +25,7 @@ const TagSelector: React.FC<Props> = ({ selectedTagIds, onTagsChange, getUsageCo
   const { user } = useAuth();
 
   const loadTags = async () => {
-    if (!user) return;
-    const db = await initDB(user);
-    const t = await db.getAll('tags');
+    const t = await loadTagsJSON();
     setAllTags(t);
   };
 

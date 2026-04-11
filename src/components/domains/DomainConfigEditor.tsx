@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Save, RotateCcw, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { initDB } from '@/lib/db';
+import { loadSiteConfigsJSON, saveSiteConfigsJSON } from '@/lib/db';
 import { useBatchError } from '@/context/BatchErrorContext';
 import { ampBridge } from '@/services/AMPBridge';
 import { toast } from '@/utils/toast';
@@ -48,8 +48,9 @@ export function DomainConfigEditor({ domain, open, onOpenChange, mode = 'edit' }
     if (!domain) return;
     setIsLoading(true);
     try {
-      const db = await initDB(user || "default");
-      const latestConfig = await db.getFromIndex('site_configs', 'by-site', domain.id);
+      const configs = await loadSiteConfigsJSON();
+      const domainConfigs = configs.filter(c => c.site_id === domain.id);
+      const latestConfig = domainConfigs.sort((a, b) => b.created_at - a.created_at)[0];
       
       if (latestConfig) {
         setContent(latestConfig.content);
@@ -82,9 +83,9 @@ export function DomainConfigEditor({ domain, open, onOpenChange, mode = 'edit' }
   const loadHistory = async () => {
     if (!domain) return;
     try {
-      const db = await initDB(user || "default");
-      const configs = await db.getAllFromIndex('site_configs', 'by-site', domain.id);
-      setHistory(configs.sort((a: any, b: any) => b.created_at - a.created_at));
+      const configs = await loadSiteConfigsJSON();
+      const domainConfigs = configs.filter(c => c.site_id === domain.id);
+      setHistory(domainConfigs.sort((a: any, b: any) => b.created_at - a.created_at));
     } catch {
       // Silently fail - history is non-critical
     }
@@ -94,10 +95,11 @@ export function DomainConfigEditor({ domain, open, onOpenChange, mode = 'edit' }
     if (!domain) return;
     setIsSaving(true);
     try {
-      const db = await initDB(user || "default");
+      const configs = await loadSiteConfigsJSON();
       const timestamp = Date.now();
       
-      await db.add('site_configs', {
+      configs.push({
+        id: timestamp,
         site_id: domain.id,
         content,
         version: history.length + 1,
@@ -105,6 +107,7 @@ export function DomainConfigEditor({ domain, open, onOpenChange, mode = 'edit' }
         is_active: deploy ? 1 : 0,
         hash: btoa(content).substring(0, 10)
       });
+      await saveSiteConfigsJSON(configs);
 
       if (deploy && ampBridge.isAvailable()) {
         const env = await ampBridge.envCheck();

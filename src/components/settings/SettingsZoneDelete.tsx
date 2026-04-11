@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { deleteUserDB } from '@/lib/db';
+import { deleteUserData } from '@/lib/db';
 import { toast } from '@/utils/toast';
 import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 
@@ -24,11 +24,11 @@ export default function SettingsZoneDelete() {
         return;
       }
 
-      await deleteUserDB(user);
-      toast.success("Database deleted successfully.");
-      logout(); // Log them out since their data is gone
+      await deleteUserData(user);
+      toast.success("All data deleted successfully.");
+      logout();
     } catch (err: any) {
-      toast.error(`Failed to delete database: ${err.message || 'Unknown error'}`);
+      toast.error(`Failed to delete data: ${err.message || 'Unknown error'}`);
     } finally {
       setIsDeleting(false);
       setDeletePassword('');
@@ -44,14 +44,14 @@ export default function SettingsZoneDelete() {
           <h2 className="card-title text-error">Dangerous Zone</h2>
         </div>
         <p className="text-sm opacity-70">
-          This will permanently delete your local database, including all sites, notes, credentials, and workflows. 
+          This will permanently delete all local data, including your user account, all sites, notes, credentials, workflows, and settings. 
           <strong> This action cannot be undone.</strong>
         </p>
 
         <div className="mt-6 p-4 bg-error/10 border border-error/20 rounded-lg">
-          <h3 className="font-bold text-error mb-2">Delete Local Database</h3>
+          <h3 className="font-bold text-error mb-2">Delete All Data</h3>
           <p className="text-xs opacity-80 mb-4">
-            Please enter your password to confirm you want to delete the database for user <strong>{user}</strong>.
+            Please enter your password to confirm you want to delete all data for user <strong>{user}</strong>.
           </p>
           
           <div className="flex gap-4 items-end">
@@ -74,7 +74,7 @@ export default function SettingsZoneDelete() {
               disabled={!deletePassword || isDeleting}
             >
               {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              Delete Database
+              Delete All Data
             </button>
           </div>
         </div>
