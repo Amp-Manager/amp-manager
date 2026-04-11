@@ -47,13 +47,13 @@ function playNote(
 }
 
 function playSuccessSound(ctx: AudioContext, startTime: number, gainValue: number): void {
-  // Two-note ascending: C5 → E5
+  // Two-note ascending: C5 -> E5
   playNote(ctx, NOTES.C5, startTime, 0.15, gainValue);
   playNote(ctx, NOTES.E5, startTime + 0.12, 0.2, gainValue);
 }
 
 function playErrorSound(ctx: AudioContext, startTime: number, gainValue: number): void {
-  // Two-note descending: E5 → C5
+  // Two-note descending: E5 -> C5
   playNote(ctx, NOTES.E5, startTime, 0.15, gainValue);
   playNote(ctx, NOTES.C5, startTime + 0.12, 0.2, gainValue);
 }
@@ -64,7 +64,7 @@ function playInfoSound(ctx: AudioContext, startTime: number, gainValue: number):
 }
 
 function playWarningSound(ctx: AudioContext, startTime: number, gainValue: number): void {
-  // Three-note ascending: C5 → D5 → E5
+  // Three-note ascending: C5 -> D5 -> E5
   playNote(ctx, NOTES.C5, startTime, 0.1, gainValue);
   playNote(ctx, NOTES.D5, startTime + 0.08, 0.1, gainValue);
   playNote(ctx, NOTES.E5, startTime + 0.16, 0.15, gainValue);

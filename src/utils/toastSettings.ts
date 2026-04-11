@@ -1,5 +1,4 @@
-import { initDB, AmpManagerDBSchema } from '@/lib/db';
-import { IDBPDatabase } from 'idb';
+import { loadSettingsJSON, saveSettingsJSON } from '@/lib/db';
 
 export type ToastPosition = 
   | 'top-left' 
@@ -12,7 +11,7 @@ export type ToastPosition =
 export interface ToastSettings {
   position: ToastPosition;
   soundEnabled: boolean;
-  volume: number; // 0-1
+  volume: number;
   types: {
     success: boolean;
     error: boolean;
@@ -33,32 +32,24 @@ export const DEFAULT_TOAST_SETTINGS: ToastSettings = {
   },
 };
 
-export async function loadToastSettings(
-  username: string,
-  db: IDBPDatabase<AmpManagerDBSchema>
-): Promise<ToastSettings> {
-  const stored = await db.get('settings', 'toastSettings');
-  if (stored && stored.value) {
-    // Merge with defaults to handle partial/old settings
+export async function loadToastSettings(username: string): Promise<ToastSettings> {
+  const settings = await loadSettingsJSON(username);
+  const stored = settings.toastSettings;
+  if (stored) {
     return {
       ...DEFAULT_TOAST_SETTINGS,
-      ...stored.value,
+      ...stored,
       types: {
         ...DEFAULT_TOAST_SETTINGS.types,
-        ...(stored.value.types || {}),
+        ...(stored.types || {}),
       },
     };
   }
   return { ...DEFAULT_TOAST_SETTINGS };
 }
 
-export async function saveToastSettings(
-  username: string,
-  db: IDBPDatabase<AmpManagerDBSchema>,
-  settings: ToastSettings
-): Promise<void> {
-  await db.put('settings', {
-    key: 'toastSettings',
-    value: settings,
-  });
+export async function saveToastSettings(username: string, settings: ToastSettings): Promise<void> {
+  const allSettings = await loadSettingsJSON(username);
+  allSettings.toastSettings = settings;
+  await saveSettingsJSON(username, allSettings);
 }
