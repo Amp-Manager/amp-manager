@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { initDB } from '@/lib/db';
 import { useDashboardSettings } from '@/stores/dashboardSettings';
 import { useBatchError } from '@/context/BatchErrorContext';
 import { useSync } from '@/context/SyncContext';
@@ -11,6 +10,11 @@ import { TimelineRow, TimelineEvent } from '../Timeline';
 import { ampBridge } from '@/services/AMPBridge';
 import { toast } from '@/utils/toast';
 import type { Workflow } from '@/components/workflow/types';
+import { 
+  loadNotesJSON, loadSitesJSON, loadActivityLogsJSON, 
+  loadWorkflowsJSON, loadCredentialsJSON, loadDomainStatusJSON,
+  loadTagsJSON
+} from '@/lib/db';
 
 export function useDashboard(user: string | null) {
   const { isSynced } = useSync();
@@ -94,20 +98,14 @@ export function useDashboard(user: string | null) {
       }
 
       // Save history and fetch stats
-      const db = await initDB(user || "default");
-      await configGuardService.captureFactorySettings(db);
+      await configGuardService.captureFactorySettings();
 
       const timestamp = Date.now();
       const angieDate = parseWindowsTimestamp(envData.angie_conf_date);
       const certDate = parseWindowsTimestamp(envData.cert_file_date);
       const wwwDate = parseWindowsTimestamp(envData.www_folder_date);
 
-      await db.add('env_history', {
-        timestamp,
-        angie_conf_date: angieDate ? angieDate.getTime() : null,
-        cert_file_date: certDate ? certDate.getTime() : null,
-        www_folder_date: wwwDate ? wwwDate.getTime() : null,
-      });
+      // TODO: Add env_history to JSON storage if needed
 
       let databases: any[] = [];
       try {
@@ -117,15 +115,14 @@ export function useDashboard(user: string | null) {
         toast.warning(`Could not retrieve databases: ${errorMsg}. Containers may be stopped.`);
       }
 
-      const [notes, sites, activityLogs, workflows, credentials, domainStatuses, tagsFromDb, databasesFromDb] = await Promise.all([
-        db.getAll('notes'),
-        db.getAll('sites'),
-        db.getAll('activity_logs'),
-        db.getAll('workflows'),
-        db.getAll('credentials'),
-        db.getAll('domain_status'),
-        db.getAll('tags'),
-        db.getAll('databases')
+      const [notes, sites, activityLogs, workflows, credentials, domainStatuses, tagsFromDb] = await Promise.all([
+        loadNotesJSON(user || "default"),
+        loadSitesJSON(),
+        loadActivityLogsJSON(user || "default"),
+        loadWorkflowsJSON(),
+        loadCredentialsJSON(user || "default"),
+        loadDomainStatusJSON(),
+        loadTagsJSON()
       ]);
       
       const saved = workflows.length;
@@ -144,46 +141,56 @@ export function useDashboard(user: string | null) {
         last7DaysMap.set(dateStr, { saved: 0, success: 0, failure: 0 });
       }
 
-      workflows.forEach(w => {
-        const d = new Date(w.created_at || w.updated_at);
-        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        if (last7DaysMap.has(dateStr)) {
-          last7DaysMap.get(dateStr)!.saved++;
-        }
-      });
-
-      notes.forEach(n => {
-        if (n.tags?.includes('deploy')) {
-          const d = new Date(n.created_at || n.updated_at);
+      if (Array.isArray(workflows)) {
+        workflows.forEach(w => {
+          const d = new Date(w.created_at || w.updated_at);
           const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
           if (last7DaysMap.has(dateStr)) {
-            if (n.tags.includes('fail')) {
-              last7DaysMap.get(dateStr)!.failure++;
-            } else {
-              last7DaysMap.get(dateStr)!.success++;
+            last7DaysMap.get(dateStr)!.saved++;
+          }
+        });
+      }
+
+      if (Array.isArray(notes)) {
+        notes.forEach(n => {
+          if (n.tags?.includes('deploy')) {
+            const d = new Date(n.created_at || n.updated_at);
+            const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            if (last7DaysMap.has(dateStr)) {
+              if (n.tags.includes('fail')) {
+                last7DaysMap.get(dateStr)!.failure++;
+              } else {
+                last7DaysMap.get(dateStr)!.success++;
+              }
             }
           }
-        }
-      });
+        });
+      }
 
       setLast7Days(Array.from(last7DaysMap.entries()).map(([date, stats]) => ({ date, ...stats })));
       
-      const domainsValid = domainStatuses.filter(d => d.status === 'valid').length;
-      const domainsWarning = domainStatuses.filter(d => d.status !== 'valid').length;
-      const certificatesValid = domainStatuses.filter(d => d.sslValid && d.caMatch).length;
-      const certificatesWarning = domainStatuses.filter(d => !d.sslValid || !d.caMatch).length;
+      const domainArr = Array.isArray(domainStatuses) ? domainStatuses : [];
+      const notesArr = Array.isArray(notes) ? notes : [];
+      const credsArr = Array.isArray(credentials) ? credentials : [];
+      const wflowsArr = Array.isArray(workflows) ? workflows : [];
+      const dbsArr = Array.isArray(databases) ? databases : [];
+
+      const domainsValid = domainArr.filter(d => d.status === 'valid').length;
+      const domainsWarning = domainArr.filter(d => d.status !== 'valid').length;
+      const certificatesValid = domainArr.filter(d => d.sslValid && d.caMatch).length;
+      const certificatesWarning = domainArr.filter(d => !d.sslValid || !d.caMatch).length;
 
       setDashboardCounts({
-        domains: domainStatuses.length,
+        domains: domainArr.length,
         domainsValid,
         domainsWarning,
-        notes: notes.length,
-        encryptedNotes: notes.filter(n => n.is_encrypted).length,
-        credentials: credentials.length,
-        workflows: workflows.length,
-        activeWorkflows: workflows.length,
-        databases: databases.length,
-        certificates: domainStatuses.length,
+        notes: notesArr.length,
+        encryptedNotes: notesArr.filter(n => n.is_encrypted).length,
+        credentials: credsArr.length,
+        workflows: wflowsArr.length,
+        activeWorkflows: wflowsArr.length,
+        databases: dbsArr.length,
+        certificates: domainArr.length,
         certificatesValid,
         certificatesWarning
       });
@@ -218,7 +225,9 @@ export function useDashboard(user: string | null) {
         timelineMap.set(rowName, events);
       };
 
-      activityLogs.forEach(log => addEvent(log.entity_type, log.action, log.timestamp, log.entity_name));
+      if (Array.isArray(activityLogs)) {
+        activityLogs.forEach(log => addEvent(log.entity_type, log.action, log.timestamp, log.entity_name));
+      }
 
       const timelineRows: TimelineRow[] = Array.from(timelineMap.entries()).map(([name, events]) => ({
         name,
@@ -229,19 +238,20 @@ export function useDashboard(user: string | null) {
       // Compute tag counts from all entities
       const tagCounts: Record<string, number> = {};
       const processTaggedItems = (items: any[]) => {
-        items.forEach(item => {
-          if (item.tags && Array.isArray(item.tags)) {
-            item.tags.forEach((tagId: string) => {
-              tagCounts[tagId] = (tagCounts[tagId] || 0) + 1;
-            });
-          }
-        });
+        if (Array.isArray(items)) {
+          items.forEach(item => {
+            if (item.tags && Array.isArray(item.tags)) {
+              item.tags.forEach((tagId: string) => {
+                tagCounts[tagId] = (tagCounts[tagId] || 0) + 1;
+              });
+            }
+          });
+        }
       };
       processTaggedItems(sites);
       processTaggedItems(workflows);
       processTaggedItems(credentials);
       processTaggedItems(notes);
-      processTaggedItems(databasesFromDb);
 
       const computedTagStats = tagsFromDb.map(t => ({
         ...t,

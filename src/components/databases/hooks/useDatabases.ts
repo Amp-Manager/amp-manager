@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback, useRef, FormEvent } from "react";
 import { databaseService } from "@/services/DatabaseService";
-import { initDB, logActivity } from "@/lib/db";
+import { 
+  loadTagsJSON, 
+  loadSettingsJSON, 
+  loadDatabasesJSON, 
+  saveDatabasesJSON,
+  loadDatabasesCacheJSON,
+  saveDatabasesCacheJSON,
+  logActivityJSON
+} from "@/lib/db";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/utils/toast";
 import { Tag } from "@/types";
@@ -17,7 +25,6 @@ export function useDatabases() {
   const [isDbRunning, setIsDbRunning] = useState<boolean | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
-  // Form State
   const [formData, setFormData] = useState<DatabaseFormData>({
     name: "",
     user: "",
@@ -26,19 +33,15 @@ export function useDatabases() {
   });
   const [isCreating, setIsCreating] = useState(false);
 
-  // Tool State
   const [dbToolPath, setDbToolPath] = useState("");
   const [dbToolType, setDbToolType] = useState<'url' | 'path'>('url');
 
-  // Delete Modal State
   const [dbToDelete, setDbToDelete] = useState<string | null>(null);
   const confirmModalRef = useRef<HTMLDialogElement>(null);
 
   const loadFromCache = useCallback(async () => {
-    if (!user) return;
     try {
-      const db = await initDB(user);
-      const cache = await db.get('databases_cache', 'list');
+      const cache = await loadDatabasesCacheJSON();
       if (cache) {
         setDatabases(cache.data);
         setLastUpdated(cache.timestamp);
@@ -48,15 +51,14 @@ export function useDatabases() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
   const fetchDatabases = useCallback(async () => {
     if (!user) return;
     setIsRefreshing(true);
     try {
       const list = await databaseService.listDatabases();
-      const db = await initDB(user);
-      const dbMetadata = await db.getAll('databases');
+      const dbMetadata = await loadDatabasesJSON();
 
       const mergedList = list.map(item => {
         const meta = dbMetadata.find(m => m.name === item.name);
@@ -66,9 +68,8 @@ export function useDatabases() {
         };
       });
 
-      // Save to cache
       const timestamp = Date.now();
-      await db.put('databases_cache', { key: 'list', data: mergedList, timestamp });
+      await saveDatabasesCacheJSON({ key: 'list', data: mergedList, timestamp });
 
       setDatabases(mergedList);
       setLastUpdated(timestamp);
@@ -81,22 +82,18 @@ export function useDatabases() {
   }, [user]);
 
   const loadTags = useCallback(async () => {
-    if (!user) return;
-    const db = await initDB(user);
-    const t = await db.getAll('tags');
+    const t = await loadTagsJSON();
     setAllTags(t);
-  }, [user]);
+  }, []);
 
   const loadSettings = useCallback(async () => {
     if (!user) return;
     try {
-      const db = await initDB(user);
-      const path = await db.get('settings', 'DBToolPath');
-      const type = await db.get('settings', 'DBToolType');
-      if (path) setDbToolPath(path.value);
-      if (type) setDbToolType(type.value);
+      const settings = await loadSettingsJSON(user);
+      if (settings.DBToolPath) setDbToolPath(settings.DBToolPath);
+      if (settings.DBToolType) setDbToolType(settings.DBToolType);
     } catch (err) {
-      // Silently fail - tool settings will use defaults
+      // Silently fail
     }
   }, [user]);
 
@@ -112,12 +109,9 @@ export function useDatabases() {
   }, []);
 
   useEffect(() => {
-    // Load from cache only - no disk read on mount
     loadFromCache();
     loadSettings();
     loadTags();
-
-    // Check DB running status (lightweight operation)
     checkStatus();
     const interval = setInterval(checkStatus, 10000);
     return () => clearInterval(interval);
@@ -139,19 +133,16 @@ export function useDatabases() {
 
     setIsCreating(true);
     try {
-      const payload = `${name}|||${dbUser}|||${pass.replace(/\"/g, '\\\\\"')}`;
+      const payload = `${name}|||${dbUser}|||${pass.replace(/"/g, '\\"')}`;
       const res = await databaseService.createDatabase(payload);
       
       toast.success(res.message);
       if (user) {
-        const db = await initDB(user);
-        await logActivity(db, 'create', 'database', name, name);
+        await logActivityJSON(user, 'create', 'database', name, name);
         
-        await db.put('databases', {
-          name,
-          tags,
-          updated_at: Date.now()
-        });
+        const allDatabases = await loadDatabasesJSON();
+        allDatabases.push({ name, tags, updated_at: Date.now() });
+        await saveDatabasesJSON(allDatabases);
       }
       setFormData({ name: "", user: "", pass: "", tags: [] });
       fetchDatabases();
@@ -168,18 +159,20 @@ export function useDatabases() {
   };
 
   const handleConfirmDelete = async () => {
-    if (!dbToDelete) return;
+    if (!dbToDelete || !user) return;
     
     confirmModalRef.current?.close();
     
     try {
       const res = await databaseService.deleteDatabase(dbToDelete);
       toast.success(res.message);
-      if (user) {
-        const db = await initDB(user);
-        await logActivity(db, 'delete', 'database', dbToDelete, dbToDelete);
-        await db.delete('databases', dbToDelete);
-      }
+      
+      await logActivityJSON(user, 'delete', 'database', dbToDelete, dbToDelete);
+      
+      const allDatabases = await loadDatabasesJSON();
+      const filtered = allDatabases.filter(d => d.name !== dbToDelete);
+      await saveDatabasesJSON(filtered);
+      
       fetchDatabases();
     } catch (err: any) {
       toast.error(err.message || "Failed to delete database");

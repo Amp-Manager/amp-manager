@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LockKeyhole, UserPlus, LogIn, AlertTriangle } from 'lucide-react';
 
@@ -10,6 +10,15 @@ export function LoginModal() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+
+  // Clear form when modal opens (security: prevent pre-filled credentials)
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUsername('');
+      setPassword('');
+      setError(null);
+    }
+  }, [isAuthenticated]);
 
   if (isAuthenticated) {
     return null;

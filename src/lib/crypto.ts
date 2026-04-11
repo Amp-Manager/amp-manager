@@ -4,7 +4,7 @@
  */
 
 // Configuration
-const PBKDF2_ITERATIONS = 100000;
+const PBKDF2_ITERATIONS = 310000;
 const SALT_LENGTH = 16;
 const IV_LENGTH = 12; // 12 bytes is recommended for GCM
 const KEY_LENGTH = 256;

@@ -1,15 +1,12 @@
-
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import { deriveKey, generateSalt, encryptData, decryptData, bufferToHex, hexToBuffer } from '../lib/crypto';
-import { initDB } from '../lib/db';
-import { IDBPDatabase } from 'idb';
-import { AmpManagerDBSchema } from '../lib/db';
+import { deriveKey, generateSalt, encryptData, decryptData, bufferToHex, hexToBuffer, encryptWithKey } from '../lib/crypto';
+import { dataStorage } from '../lib/storage';
 import { ampBridge } from '../services/AMPBridge';
-import { toast } from '@/utils/toast';
+import { loadCredentialsJSON, saveCredentialsJSON, loadUserJSON, saveUserJSON, setCurrentUser, setEncryptionKey } from '../lib/db';
 
 interface AuthContextType {
   user: string | null;
-  db: IDBPDatabase<AmpManagerDBSchema> | null;
+  db: null;
   encryptionKey: CryptoKey | null;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
@@ -22,40 +19,42 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<string | null>(null);
-  const [db, setDb] = useState<IDBPDatabase<AmpManagerDBSchema> | null>(null);
   const [encryptionKey, setEncryptionKey] = useState<CryptoKey | null>(null);
+  const db = null;
 
   const login = useCallback(async (username: string, password: string) => {
     try {
-      const database = await initDB(username);
-      const settings = await database.get('settings', 'security_metadata');
+      const userData = await loadUserJSON(username);
 
-      if (!settings) {
+      if (!userData) {
         throw new Error('User not found. Please register.');
       }
 
-      const salt = hexToBuffer(settings.salt);
+      if (!userData.salt || !userData.validation_iv || !userData.validation_ciphertext) {
+        throw new Error('User data corrupted. Please re-register or contact support.');
+      }
+
+      const salt = hexToBuffer(userData.salt);
       const key = await deriveKey(password, salt);
       
-      // Validate password by attempting to decrypt the validation hash
-      const validationIv = hexToBuffer(settings.validation_iv);
-      const validationCiphertext = hexToBuffer(settings.validation_ciphertext);
+      const validationIv = hexToBuffer(userData.validation_iv);
+      const validationCiphertext = hexToBuffer(userData.validation_ciphertext);
       
       try {
         const decryptedValidation = await decryptData(key, validationIv, validationCiphertext);
         if (decryptedValidation !== 'VALIDATION_CHECK') {
            throw new Error('Invalid password.');
         }
-      } catch (e) {
+      } catch {
         throw new Error('Invalid password. Ensure Caps Lock is off and retype your password carefully.');
       }
 
       setUser(username);
-      setDb(database);
       setEncryptionKey(key);
+      setCurrentUser(username); // Set global currentUser for db functions
       
-      // Auto-generate SSH key for tunneling
-      await ensureSSHKeyExists(username, database, key);
+      await ensureSSHKeyExists(username, key);
+      await dataStorage.save('config.json', { lastUser: username });
     } catch (error) {
       throw error;
     }
@@ -63,21 +62,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = useCallback(async (username: string, password: string) => {
     try {
-      const database = await initDB(username);
-      const existingSettings = await database.get('settings', 'security_metadata');
-
-      if (existingSettings) {
+      const existing = await loadUserJSON(username);
+      if (existing) {
         throw new Error('User already exists. Please login.');
       }
+
+      await dataStorage.ensureUserDir(username);
 
       const salt = generateSalt();
       const key = await deriveKey(password, salt);
 
-      // Create validation hash
       const { iv, ciphertext } = await encryptData(key, 'VALIDATION_CHECK');
 
-      await database.put('settings', {
-        key: 'security_metadata',
+      await saveUserJSON(username, {
         salt: bufferToHex(salt),
         validation_iv: bufferToHex(iv),
         validation_ciphertext: bufferToHex(ciphertext),
@@ -85,88 +82,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       setUser(username);
-      setDb(database);
       setEncryptionKey(key);
+      setCurrentUser(username); // Set global currentUser for db functions
       
-      // Auto-generate SSH key for tunneling
-      await ensureSSHKeyExists(username, database, key);
+      await ensureSSHKeyExists(username, key);
+      await dataStorage.save('config.json', { lastUser: username });
     } catch (error) {
       throw error;
     }
   }, []);
 
-  // Helper if SSH key exists for tunneling
-  const ensureSSHKeyExists = async (
-    username: string,
-    database: IDBPDatabase<AmpManagerDBSchema>,
-    key: CryptoKey
-  ) => {
-    try {
-      const existingKey = await database.get('credentials', 'ssh_amp_manager');
-      if (existingKey) return;
+  const verifyPassword = useCallback(async (pwd: string): Promise<boolean> => {
+    if (!encryptionKey || !user) return false;
+    
+    const userData = await loadUserJSON(user);
+    if (!userData) return false;
 
-      if (!ampBridge.isAvailable()) return;
-
-      const res = await ampBridge.sshKeyGenerate(username);
-      if (res.status !== 'ok') return;
-
-      const pubKeyResult = await ampBridge.sshKeyStatus();
-      
-      const keyData = JSON.stringify({
-        username: username,
-        keyPath: res.key_path || `${process.env.USERPROFILE}\\.ssh\\id_ed25519`,
-        fingerprint: pubKeyResult.fingerprint || res.fingerprint || '',
-        publicKey: pubKeyResult.public_key || res.public_key || ''
-      });
-
-      const { iv, ciphertext } = await encryptData(key, keyData);
-
-      await database.put('credentials', {
-        id: 'ssh_amp_manager',
-        name: 'AMP Manager SSH Key',
-        type: 'ssh_key',
-        username: username,
-        secret: bufferToHex(ciphertext),
-        iv: bufferToHex(iv),
-        salt: '',
-        created_at: Date.now(),
-        updated_at: Date.now()
-      });
-
-      toast.success('SSH key configured for tunneling');
-    } catch (err) {
-      // Silent fail - tunnel services will still work
-    }
-  };
-
-  const verifyPassword = useCallback(async (password: string): Promise<boolean> => {
-    if (!user || !db) return false;
+    const validationIv = hexToBuffer(userData.validation_iv);
+    const validationCiphertext = hexToBuffer(userData.validation_ciphertext);
     
     try {
-      const settings = await db.get('settings', 'security_metadata');
-      if (!settings) return false;
-
-      const salt = hexToBuffer(settings.salt);
-      const key = await deriveKey(password, salt);
-      
-      const validationIv = hexToBuffer(settings.validation_iv);
-      const validationCiphertext = hexToBuffer(settings.validation_ciphertext);
-      
-      const decryptedValidation = await decryptData(key, validationIv, validationCiphertext);
-      return decryptedValidation === 'VALIDATION_CHECK';
-    } catch (e) {
+      const decrypted = await decryptData(encryptionKey, validationIv, validationCiphertext);
+      return decrypted === 'VALIDATION_CHECK';
+    } catch {
       return false;
     }
-  }, [user, db]);
+  }, [user, encryptionKey]);
 
-  const logout = useCallback(() => {
-    if (db) {
-      db.close();
-    }
+  const logout = useCallback(async () => {
+    await dataStorage.save('config.json', { lastUser: null });
     setUser(null);
-    setDb(null);
     setEncryptionKey(null);
-  }, [db]);
+    setCurrentUser(null); // Clear global currentUser for db functions
+  }, []);
 
   const value = useMemo(() => ({
     user,
@@ -192,4 +140,46 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+async function ensureSSHKeyExists(username: string, key: CryptoKey) {
+  try {
+    const allCreds = await loadCredentialsJSON(username, key);
+    const existingKey = allCreds.find(c => c.id === 'ssh_amp_manager');
+    
+    if (existingKey) return;
+
+    if (!ampBridge.isAvailable()) return;
+
+    const res = await ampBridge.sshKeyGenerate(username);
+    if (res.status !== 'ok') return;
+
+    const pubKeyResult = await ampBridge.sshKeyStatus();
+    
+    const keyInfo = JSON.stringify({
+      publicKey: pubKeyResult.public_key,
+      keyPath: pubKeyResult.key_path,
+      fingerprint: pubKeyResult.fingerprint,
+      generatedAt: Date.now()
+    });
+    
+    const { iv, ciphertext } = await encryptWithKey(keyInfo, key);
+    
+    const newCred = {
+      id: 'ssh_amp_manager',
+      name: 'AMP Manager SSH Key',
+      type: 'ssh_key',
+      secret: ciphertext,
+      iv: iv,
+      salt: 'session',
+      public_key: pubKeyResult.public_key,
+      created_at: Date.now(),
+      updated_at: Date.now()
+    };
+    
+    allCreds.push(newCred);
+    await saveCredentialsJSON(username, allCreds, key);
+  } catch {
+    // Ignore SSH key errors
+  }
 }
