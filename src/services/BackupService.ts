@@ -1,41 +1,37 @@
-import { initDB } from '../lib/db';
+import { 
+  loadSitesJSON, saveSitesJSON,
+  loadTagsJSON, saveTagsJSON,
+  loadNotesJSON, saveNotesJSON,
+  loadCredentialsJSON, saveCredentialsJSON,
+  loadWorkflowsJSON, saveWorkflowsJSON
+} from '../lib/db';
 import { decryptWithKey, encryptWithKey } from '../lib/crypto';
 import { toast } from '@/utils/toast';
-import type { SiteRecord, Note, Credential, Tag, DatabaseRecord, ActivityLog, Task, SettingRecord } from '../types/entities';
-import type { Workflow } from '../components/workflow/types';
 
 export interface BackupData {
   version: string;
   timestamp: number;
-  sites: SiteRecord[];
-  notes: Note[];
-  credentials: Credential[];
-  workflows: Workflow[];
-  tags: Tag[];
-  tasks: Task[];
-  settings: SettingRecord[];
-  databases?: DatabaseRecord[];
-  activity_logs?: ActivityLog[];
+  sites: any[];
+  notes: any[];
+  credentials: any[];
+  workflows: any[];
+  tags: any[];
 }
 
 class BackupService {
   async exportData(username: string, encryptionKey: CryptoKey | null, includeSensitive: boolean): Promise<BackupData> {
-    const db = await initDB(username);
-    
-    const [sites, notesRaw, credentialsRaw, workflows, tags, tasks, settings] = await Promise.all([
-      db.getAll('sites'),
-      db.getAll('notes'),
-      db.getAll('credentials'),
-      db.getAll('workflows'),
-      db.getAll('tags'),
-      db.getAll('tasks'),
-      db.getAll('settings')
+    const [sites, notesRaw, credentialsRaw, workflows, tags] = await Promise.all([
+      loadSitesJSON(),
+      loadNotesJSON(username, encryptionKey || undefined),
+      loadCredentialsJSON(username, encryptionKey || undefined),
+      loadWorkflowsJSON(),
+      loadTagsJSON()
     ]);
 
     const notes = await Promise.all(notesRaw.map(async (note) => {
       if (includeSensitive && note.is_encrypted && encryptionKey) {
         try {
-          const decrypted = await decryptWithKey(note.content_iv!, note.content_ciphertext!, encryptionKey);
+          const decrypted = await decryptWithKey(note.content_iv, note.content_ciphertext, encryptionKey);
           return { ...note, content: decrypted, is_encrypted: false, content_iv: undefined, content_ciphertext: undefined };
         } catch {
           toast.error(`Failed to decrypt note "${note.id}". Check your encryption key.`);
@@ -69,67 +65,71 @@ class BackupService {
       notes,
       credentials,
       workflows,
-      tags,
-      tasks,
-      settings
+      tags
     };
   }
 
   async importData(username: string, data: BackupData, encryptionKey: CryptoKey | null, overwrite: boolean) {
-    const db = await initDB(username);
-    
     if (overwrite) {
       await Promise.all([
-        db.clear('sites'),
-        db.clear('notes'),
-        db.clear('credentials'),
-        db.clear('workflows'),
-        db.clear('tags'),
-        db.clear('tasks'),
-        db.clear('settings')
+        saveSitesJSON([]),
+        saveNotesJSON(username, [], encryptionKey),
+        saveCredentialsJSON(username, [], encryptionKey),
+        saveWorkflowsJSON([]),
+        saveTagsJSON([])
       ]);
     }
 
-    await Promise.all([
-      // Sites
-      ...data.sites.map(site => db.put('sites', site)),
-      // Tags
-      ...data.tags.map(tag => db.put('tags', tag)),
-      // Tasks
-      ...data.tasks.map(task => db.put('tasks', task)),
-      // Workflows
-      ...data.workflows.map(workflow => db.put('workflows', workflow)),
-      // Settings
-      ...data.settings.map(setting => db.put('settings', setting)),
-      // Notes (Re-encrypt if needed)
-      ...data.notes.map(async (note) => {
+    if (data.sites?.length) {
+      const existing = await loadSitesJSON();
+      await saveSitesJSON([...existing, ...data.sites]);
+    }
+
+    if (data.tags?.length) {
+      const existing = await loadTagsJSON();
+      await saveTagsJSON([...existing, ...data.tags]);
+    }
+
+    if (data.workflows?.length) {
+      const existing = await loadWorkflowsJSON();
+      await saveWorkflowsJSON([...existing, ...data.workflows]);
+    }
+
+    if (data.notes?.length) {
+      const existing = await loadNotesJSON(username, encryptionKey || undefined);
+      const reencrypted = await Promise.all(data.notes.map(async (note) => {
         if (note.is_encrypted === false && note.content && encryptionKey) {
           const { iv, ciphertext } = await encryptWithKey(note.content, encryptionKey);
-          return db.put('notes', {
+          return {
             ...note,
             is_encrypted: true,
             content: '',
             content_iv: iv,
             content_ciphertext: ciphertext,
             content_salt: 'session'
-          });
+          };
         }
-        return db.put('notes', note);
-      }),
-      // Credentials (Re-encrypt if needed)
-      ...data.credentials.map(async (cred) => {
+        return note;
+      }));
+      await saveNotesJSON(username, [...existing, ...reencrypted], encryptionKey);
+    }
+
+    if (data.credentials?.length) {
+      const existing = await loadCredentialsJSON(username, encryptionKey || undefined);
+      const reencrypted = await Promise.all(data.credentials.map(async (cred) => {
         if (cred.salt === 'plain' && encryptionKey) {
           const { iv, ciphertext } = await encryptWithKey(cred.secret, encryptionKey);
-          return db.put('credentials', {
+          return {
             ...cred,
             secret: ciphertext,
             iv: iv,
             salt: 'session'
-          });
+          };
         }
-        return db.put('credentials', cred);
-      })
-    ]);
+        return cred;
+      }));
+      await saveCredentialsJSON(username, [...existing, ...reencrypted], encryptionKey);
+    }
   }
 }
 

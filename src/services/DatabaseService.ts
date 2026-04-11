@@ -46,11 +46,14 @@ class DatabaseService {
     const folderNames = new Set<string>();
     try {
       const entries = await ampBridge.fs.readDirectory(dataPath);
-      entries.forEach((entry: any) => {
-        if (entry.type === 'DIRECTORY' && entry.entry) {
-          folderNames.add(entry.entry);
-        }
-      });
+      // Verify entries is an array before forEach
+      if (Array.isArray(entries)) {
+        entries.forEach((entry: any) => {
+          if (entry.type === 'DIRECTORY' && entry.entry) {
+            folderNames.add(entry.entry);
+          }
+        });
+      }
     } catch {
       // if scan fails, assume no folders exist
       toast.warning('Could not scan data folder. Database folder status may be incomplete.');

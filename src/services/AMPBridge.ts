@@ -113,6 +113,9 @@ class AMPBridge {
     deleteFile: (path: string) => this.call<void>('fs.deleteFile', path),
     readDirectory: (path: string) => this.call<any[]>('fs.readDirectory', path),
     getFolderSize: (path: string) => this.call<string>('fs.getFolderSize', path),
+    createDirectory: (path: string) => this.call<void>('fs.createDirectory', path),
+    remove: (path: string) => this.call<void>('fs.remove', path),
+    getAbsolutePath: (path: string) => this.call<string>('fs.getAbsolutePath', path),
   };
 
   // Angie

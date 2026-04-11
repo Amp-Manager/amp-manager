@@ -1,4 +1,4 @@
-import { IDBPDatabase } from 'idb';
+import { loadSiteConfigsJSON, saveSiteConfigsJSON } from '@/lib/db';
 import { ampBridge } from './AMPBridge';
 
 export const ESSENTIAL_FILES = [
@@ -20,8 +20,9 @@ export interface ConfigBackup {
 }
 
 class ConfigGuardService {
-  async captureFactorySettings(db: IDBPDatabase<any>) {
-    const existing = await db.getAllFromIndex('config_backups', 'by-type', 'factory');
+  async captureFactorySettings() {
+    const configs = await loadSiteConfigsJSON();
+    const existing = configs.filter(c => c.type === 'factory');
     
     const existingFilenames = new Set(existing.map((b: any) => b.filename));
     const missingFiles = ESSENTIAL_FILES.filter(f => !existingFilenames.has(f));
@@ -38,7 +39,7 @@ class ConfigGuardService {
         const path = `${nlPath}/${file.replace(/\//g, '\\')}`;
         const content = await ampBridge.fs.readTextFile(path);
         
-        await db.put('config_backups', {
+        configs.push({
           id: `factory:${file}`,
           filename: file,
           path: path,
@@ -50,29 +51,34 @@ class ConfigGuardService {
         // Silently skip files that cannot be read
       }
     }
+    
+    await saveSiteConfigsJSON(configs);
   }
 
-  async getBackups(db: IDBPDatabase<any>) {
-    return await db.getAll('config_backups') as ConfigBackup[];
+  async getBackups(): Promise<ConfigBackup[]> {
+    const configs = await loadSiteConfigsJSON();
+    return configs as ConfigBackup[];
   }
 
-  async restoreFile(db: IDBPDatabase<any>, fileId: string) {
-    const backup = await db.get('config_backups', fileId) as ConfigBackup;
+  async restoreFile(fileId: string): Promise<ConfigBackup> {
+    const configs = await loadSiteConfigsJSON();
+    const backup = configs.find(c => c.id === fileId) as ConfigBackup;
     if (!backup) throw new Error('Config backup not found');
 
     await ampBridge.fs.writeTextFile(backup.path, backup.content);
     return backup;
   }
 
-  async createSnapshot(db: IDBPDatabase<any>, file: string) {
+  async createSnapshot(file: string) {
     if (!ampBridge.isAvailable()) return;
     const env = await ampBridge.envCheck();
     const nlPath = env.project_root;
     const path = `${nlPath}/${file.replace(/\//g, '\\')}`;
     const content = await ampBridge.fs.readTextFile(path);
     
+    const configs = await loadSiteConfigsJSON();
     const timestamp = Date.now();
-    await db.put('config_backups', {
+    configs.push({
       id: `snapshot:${file}:${timestamp}`,
       filename: file,
       path: path,
@@ -80,14 +86,17 @@ class ConfigGuardService {
       timestamp: timestamp,
       type: 'snapshot'
     });
+    await saveSiteConfigsJSON(configs);
   }
 
-  async deleteBackup(db: IDBPDatabase<any>, fileId: string) {
-    const backup = await db.get('config_backups', fileId);
+  async deleteBackup(fileId: string) {
+    const configs = await loadSiteConfigsJSON();
+    const backup = configs.find(c => c.id === fileId);
     if (backup && backup.type === 'factory') {
       throw new Error('Factory backups cannot be deleted');
     }
-    await db.delete('config_backups', fileId);
+    const filtered = configs.filter(c => c.id !== fileId);
+    await saveSiteConfigsJSON(filtered);
   }
 }
 
