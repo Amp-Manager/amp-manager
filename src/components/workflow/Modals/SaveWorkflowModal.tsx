@@ -1,6 +1,6 @@
 import React from 'react';
 import TagSelector from '@/components/layout/TagSelector';
-import { initDB } from '@/lib/db';
+import { loadTagsJSON } from '@/lib/db';
 
 interface SaveWorkflowModalProps {
   isOpen: boolean;
@@ -72,9 +72,7 @@ export const SaveWorkflowModal: React.FC<SaveWorkflowModalProps> = ({
                 return savedWorkflows.filter(w => w.tags?.includes(tagId)).length;
               }}
               onTagsUpdated={async () => {
-                if (!user) return;
-                const db = await initDB(user);
-                const tags = await db.getAll('tags');
+                const tags = await loadTagsJSON();
                 setAllTags(tags);
               }}
             />

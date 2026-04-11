@@ -1,7 +1,11 @@
 import { useState, useCallback, useRef } from 'react';
 import { ampBridge } from '@/services/AMPBridge';
 import { configGuardService } from '@/services/ConfigGuardService';
-import { initDB } from '@/lib/db';
+import { 
+  loadSitesJSON, saveSitesJSON, 
+  loadDomainStatusJSON, saveDomainStatusJSON,
+  loadSettingsJSON, saveSettingsJSON
+} from '@/lib/db';
 import type { SyncStep, DomainStatus } from '@/types/entities';
 
 interface UseProjectSyncReturn {
@@ -51,8 +55,6 @@ export function useProjectSync(): UseProjectSyncReturn {
     currentStepIdRef.current = 'config';
 
     try {
-      const db = await initDB(user);
-
       // Configuration Integrity Check
       currentStepIdRef.current = 'config';
       setCurrentStepIndex(0);
@@ -70,7 +72,7 @@ export function useProjectSync(): UseProjectSyncReturn {
       }
 
       // Capture factory settings (backup essential config files)
-      await configGuardService.captureFactorySettings(db);
+      await configGuardService.captureFactorySettings();
       setStepStatus('config', 'done');
 
       // Environment Check validation
@@ -126,7 +128,7 @@ export function useProjectSync(): UseProjectSyncReturn {
       setStepStatus('scan', 'done');
 
       // Get existing sites for preserving created_at timestamps
-      const existingSites = await db.getAll('sites');
+      const existingSites = await loadSitesJSON();
       const sitesMap = new Map(existingSites.map(s => [s.id, s]));
 
       // Build domain statuses from backend response (ssl_valid now comes from backend)
@@ -149,23 +151,24 @@ export function useProjectSync(): UseProjectSyncReturn {
         };
       });
 
-      // Sync to IndexedDB
+      // Sync to JSON storage
       currentStepIdRef.current = 'sync';
       setCurrentStepIndex(4);
       setStepStatus('sync', 'current');
 
-      const existingStatuses = await db.getAll('domain_status');
+      const existingStatuses = await loadDomainStatusJSON();
       const newDomains = new Set(domainStatuses.map(s => s.domain));
 
       // Update domain statuses
-      for (const status of domainStatuses) {
-        await db.put('domain_status', status);
-      }
+      const allStatuses = [...existingStatuses.filter(s => newDomains.has(s.domain)), ...domainStatuses];
+      await saveDomainStatusJSON(allStatuses);
 
       // Update sites
+      const allSites = [...existingSites];
       for (const status of domainStatuses) {
         const existingSite = sitesMap.get(status.domain);
-        await db.put('sites', {
+        const siteIndex = allSites.findIndex(s => s.id === status.domain);
+        const site = {
           id: status.domain,
           domain: status.domain,
           path: `${projectRoot}\\www\\${status.domain}`,
@@ -173,24 +176,25 @@ export function useProjectSync(): UseProjectSyncReturn {
           is_encrypted: false,
           created_at: existingSite?.created_at || Date.now(),
           updated_at: Date.now(),
-        });
+        };
+        if (siteIndex >= 0) {
+          allSites[siteIndex] = site;
+        } else {
+          allSites.push(site);
+        }
       }
 
       // Remove orphaned entries
-      for (const existing of existingStatuses) {
-        if (!newDomains.has(existing.domain)) {
-          await db.delete('domain_status', existing.domain);
-        }
-      }
-      const existingSitesForDelete = await db.getAll('sites');
-      for (const existing of existingSitesForDelete) {
-        if (!newDomains.has(existing.id)) {
-          await db.delete('sites', existing.id);
-        }
-      }
+      const filteredStatuses = existingStatuses.filter(s => newDomains.has(s.domain));
+      await saveDomainStatusJSON(filteredStatuses);
+
+      const filteredSites = existingSites.filter(s => newDomains.has(s.id));
+      await saveSitesJSON(filteredSites);
 
       // Update last sync timestamp
-      await db.put('settings', { key: 'lastSyncTimestamp', value: Date.now() });
+      const settings = await loadSettingsJSON(user);
+      settings.lastSyncTimestamp = Date.now();
+      await saveSettingsJSON(user, settings);
 
       setStepStatus('sync', 'done');
       setIsRunning(false);

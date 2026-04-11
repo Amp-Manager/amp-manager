@@ -21,23 +21,21 @@ interface ToastSettingsContextType {
 const ToastSettingsContext = createContext<ToastSettingsContextType | undefined>(undefined);
 
 export function ToastSettingsProvider({ children }: { children: ReactNode }) {
-  const { user, db } = useAuth();
+  const { user } = useAuth();
   const [toastSettings, setToastSettings] = useState<ToastSettings>(DEFAULT_TOAST_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load settings when user changes
   useEffect(() => {
     const loadSettings = async () => {
-      if (!user || !db) {
+      if (!user) {
         setIsLoading(false);
         return;
       }
 
       try {
-        const settings = await loadToastSettings(user, db);
+        const settings = await loadToastSettings(user);
         setToastSettings(settings);
 
-        // Apply sound settings to audio module
         setToastSoundEnabled(settings.soundEnabled);
         setToastVolume(settings.volume);
       } catch (err) {
@@ -48,11 +46,10 @@ export function ToastSettingsProvider({ children }: { children: ReactNode }) {
     };
 
     loadSettings();
-  }, [user, db]);
+  }, [user]);
 
-  // Update settings function
   const updateToastSettings = useCallback(async (updates: Partial<ToastSettings>) => {
-    if (!user || !db) return;
+    if (!user) return;
 
     setToastSettings((prev) => {
       const newSettings = {
@@ -61,22 +58,19 @@ export function ToastSettingsProvider({ children }: { children: ReactNode }) {
         types: updates.types ? { ...prev.types, ...updates.types } : prev.types,
       };
 
-      // Apply sound settings immediately
       setToastSoundEnabled(newSettings.soundEnabled);
       setToastVolume(newSettings.volume);
 
-      // Save to IndexedDB (fire and forget)
-      saveToastSettings(user, db, newSettings).catch(() => {
+      saveToastSettings(user, newSettings).catch(() => {
         // Silently fail - settings applied but not persisted
       });
 
       return newSettings;
     });
-  }, [user, db]);
+  }, [user]);
 
-  // Reset to defaults
   const resetToDefaults = useCallback(async () => {
-    if (!user || !db) return;
+    if (!user) return;
 
     const defaults = { ...DEFAULT_TOAST_SETTINGS };
     setToastSettings(defaults);
@@ -84,11 +78,11 @@ export function ToastSettingsProvider({ children }: { children: ReactNode }) {
     setToastVolume(defaults.volume);
 
     try {
-      await saveToastSettings(user, db, defaults);
+      await saveToastSettings(user, defaults);
     } catch (err) {
       // Silently fail - defaults applied but not persisted
     }
-  }, [user, db]);
+  }, [user]);
 
   const value: ToastSettingsContextType = {
     toastSettings,
