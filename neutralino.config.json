@@ -3,23 +3,19 @@
   "applicationId": "js.amp.manager",
   "applicationName": "AMP-Manager",
   "applicationIcon": "resources/icons/ampManager256.png",
-  "version": "1.1.13",
+  "version": "1.0.0",
   "defaultMode": "window",
   "documentRoot": "/resources/",
   "url": "/",
   "enableServer": true,
   "enableNativeAPI": true,
-
-  "storageLocation": "system",
-  "dataLocation": "system",
-
+  "storageLocation": "app",
+  "dataLocation": "app",
   "tokenSecurity": "one-time",
-
   "logging": {
     "enabled": true,
     "writeToLogFile": true
   },
-
   "nativeAllowList": [
     "os.execCommand",
     "os.open",
@@ -31,6 +27,9 @@
     "filesystem.removeFile",
     "filesystem.readDirectory",
     "filesystem.getStats",
+    "filesystem.createDirectory",
+    "filesystem.remove",
+    "filesystem.getAbsolutePath",
     "events.on",
     "events.off",
     "events.dispatch",
@@ -38,18 +37,15 @@
     "window.setDraggableRegion",
     "window.beginDrag",
     "window.minimize",
-    "window.maximize",
     "window.unmaximize",
     "window.close",
     "window.isMaximized",
     "app.exit"
   ],
-
   "application": {
     "singleInstance": true
   },
-
-  "modes": {    
+  "modes": {
     "window": {
       "hidden": false,
       "skipTaskbar": false,
@@ -73,8 +69,6 @@
       "exitProcessOnClose": false
     }
   },
-  
-
   "cli": {
     "binaryName": "amp-manager",
     "resourcesPath": "/resources/",

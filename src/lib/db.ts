@@ -1,348 +1,181 @@
-
 // lib/db.ts
-// Handles IndexedDB operations using the 'idb' library.
+// KISS: Single source of truth - ignores extra params from old code
 
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { Node, Edge } from '@xyflow/react';
-import { DockerStat, DockerDisk, DockerInfo } from '@/types';
+import { dataStorage } from './storage';
+import { ampBridge } from '../services/AMPBridge';
 
 export type SettingValue = string | number | boolean | null | any[] | Record<string, any>;
 
-export interface AmpManagerDBSchema extends DBSchema {
-  settings: {
-    key: string;
-    value: any;
-  };
-  tags: {
-    key: string;
-    value: {
-      id: string;
-      name: string;
-      color: string;
-      created_at: number;
-    };
-    indexes: { 'by-name': string };
-  };
-  sites: {
-    key: string;
-    value: {
-      id: string;
-      domain: string;
-      path: string;
-      tags: string[]; // Array of tag IDs
-      is_encrypted: boolean;
-      created_at: number;
-      updated_at: number;
-    };
-    indexes: { 'by-domain': string; 'by-tags': string };
-  };
-  notes: {
-    key: string;
-    value: {
-      id: string;
-      site_id: string;
-      title: string;
-      content: string; // Plain text content
-      content_iv?: string; // Hex string
-      content_ciphertext?: string; // Hex string
-      content_salt?: string; // Hex string for PBKDF2
-      is_encrypted: boolean;
-      tags: string[]; // Array of tag IDs
-      created_at: number;
-      updated_at: number;
-    };
-    indexes: { 'by-site': string; 'by-created': number; 'by-tags': string };
-  };
-  tasks: {
-    key: string;
-    value: {
-      id: string;
-      site_id: string;
-      description: string;
-      status: 'pending' | 'in-progress' | 'done';
-      due_date?: number;
-      alert_before_minutes?: number;
-      created_at: number;
-    };
-    indexes: { 'by-site': string; 'by-due-date': number; 'by-status': string };
-  };
-  env_history: {
-    key: number;
-    value: {
-      id?: number;
-      timestamp: number;
-      angie_conf_date: number | null;
-      cert_file_date: number | null;
-      www_folder_date: number | null;
-    };
-    indexes: { 'by-timestamp': number };
-  };
-  site_configs: {
-    key: number;
-    value: {
-      id?: number;
-      site_id: string;
-      content: string;
-      version: number;
-      created_at: number;
-      is_active: number; // 0 or 1
-      hash: string;
-    };
-    indexes: { 'by-site': string; 'by-version': number; 'by-active': number };
-  };
-  workflows: {
-    key: string;
-    value: {
-      id: string;
-      title: string;
-      description: string;
-      nodes: Node[];
-      edges: Edge[];
-      tags?: string[];
-      created_at: number;
-      updated_at: number;
-    };
-    indexes: { 'by-updated': number };
-  };
-  credentials: {
-    key: string;
-    value: {
-      id: string;
-      name: string;
-      type: 'ssh' | 'password' | 'api_key' | 'ssh_key';  // ssh_key is internal (AMP Manager)
-      username?: string;        // For password or SFTP username
-      secret: string;           // Encrypted: private key, password, or token
-      public_key?: string;      // Plain text for SSH public key
-      iv: string;
-      salt: string;
-      tags?: string[];
-      created_at: number;
-      updated_at: number;
-    };
-    indexes: { 'by-name': string; 'by-type': string };
-  };
-  metrics: {
-    key: number;
-    value: {
-      id?: number;
-      timestamp: number;
-      stats: DockerStat[];
-      disk: DockerDisk[];
-      info: DockerInfo;
-    };
-    indexes: { 'by-timestamp': number };
-  };
-  config_backups: {
-    key: string;
-    value: {
-      id: string;
-      filename: string;
-      path: string;
-      content: string;
-      timestamp: number;
-      type: 'factory' | 'snapshot';
-    };
-    indexes: { 'by-filename': string; 'by-type': string };
-  };
-  activity_logs: {
-    key: string;
-    value: {
-      id: string;
-      action: 'delete' | 'create' | 'update' | 'deploy' | 'error';
-      entity_type: 'domain' | 'note' | 'workflow' | 'credential' | 'database';
-      entity_id: string;
-      entity_name: string;
-      timestamp: number;
-    };
-    indexes: { 'by-timestamp': number };
-  };
-  databases: {
-    key: string; // dbName
-    value: {
-      name: string;
-      tags: string[];
-      updated_at: number;
-    };
-    indexes: { 'by-tags': string };
-  };
-  databases_cache: {
-    key: string; // 'list'
-    value: {
-      key: string;
-      data: any[];
-      timestamp: number;
-    };
-  };
-  tunnels: {
-    key: string; // domain
-    value: {
-      domain: string;
-      profile: string;
-      publicUrl: string;
-      processId: number;
-      startedAt: number;
-      status: string;
-    };
-  };
-  domain_status: {
-    key: string; // domain
-    value: {
-      domain: string;
-      configValid: boolean;
-      hostsValid: boolean;
-      sslValid: boolean;
-      wwwValid: boolean;
-      caMatch: boolean;
-      status: 'valid' | 'warning' | 'error';
-      lastChecked: number;
-    };
-    indexes: { 'by-status': string };
-  };
+let _currentUser: string | null = null;
+let _encryptionKey: CryptoKey | null = null;
+
+export function setCurrentUser(username: string | null): void {
+  _currentUser = username;
 }
 
-const DB_VERSION = 15;
-
-export async function logActivity(
-  db: IDBPDatabase<AmpManagerDBSchema>,
-  action: 'delete' | 'create' | 'update' | 'deploy' | 'error',
-  entity_type: 'domain' | 'note' | 'workflow' | 'credential' | 'database',
-  entity_id: string,
-  entity_name: string
-) {
-  await db.add('activity_logs', {
-    id: crypto.randomUUID(),
-    action,
-    entity_type,
-    entity_id,
-    entity_name,
-    timestamp: Date.now(),
-  });
+export function getCurrentUser(): string | null {
+  return _currentUser;
 }
 
-export async function initDB(username: string): Promise<IDBPDatabase<AmpManagerDBSchema>> {
-  const dbName = `AmpManagerDB_${username}`;
+export function setEncryptionKey(key: CryptoKey | null): void {
+  _encryptionKey = key;
+}
+
+export function getEncryptionKey(): CryptoKey | null {
+  return _encryptionKey;
+}
+
+function ensureUser(): string {
+  if (!_currentUser) throw new Error('Not authenticated');
+  return _currentUser;
+}
+
+function ensureEncryptionKey(): CryptoKey {
+  if (!_encryptionKey) throw new Error('Encryption key not available - please log in again');
+  return _encryptionKey;
+}
+
+// =====================
+// GLOBAL CONFIG
+// =====================
+export async function loadConfigJSON(): Promise<any> { return await dataStorage.load<any>('config.json'); }
+export async function saveConfigJSON(config: any): Promise<void> { await dataStorage.save('config.json', config); }
+
+// =====================
+// USER AUTH (explicit username)
+// =====================
+export async function loadUserJSON(username: string): Promise<any> {
+  return await dataStorage.loadUser<any>(username, 'user.json');
+}
+export async function saveUserJSON(username: string, data: any): Promise<void> {
+  await dataStorage.ensureUserDir(username);
+  await dataStorage.saveUser(username, 'user.json', data);
+}
+
+// =====================
+// LOAD - Accept ...args, ignore extras
+// =====================
+function resolveKey(...args: any[]): CryptoKey | null {
+  const passed = args[0];
+  if (passed instanceof CryptoKey) return passed;
+  if (passed && typeof passed === 'object' && (passed as any).type === 'secret') return passed as unknown as CryptoKey;
+  const globalKey = getEncryptionKey();
+  if (globalKey && typeof globalKey === 'object' && (globalKey as any).type === 'secret') return globalKey;
+  return null;
+}
+
+export async function loadSitesJSON(..._args: any[]): Promise<any[]> { try { return await dataStorage.loadUser<any[]>(ensureUser(), 'sites.json') || []; } catch { return []; } }
+export async function loadTagsJSON(..._args: any[]): Promise<any[]> { try { return await dataStorage.loadUser<any[]>(ensureUser(), 'tags.json') || []; } catch { return []; } }
+export async function loadNotesJSON(..._args: any[]): Promise<any[]> { 
+  const key = resolveKey(..._args);
+  try { return await dataStorage.loadUser<any[]>(ensureUser(), 'notes.json', key ? { encrypt: true, key } : undefined) || []; } catch { return []; } 
+}
+export async function loadCredentialsJSON(..._args: any[]): Promise<any[]> { 
+  const key = resolveKey(..._args);
+  try { return await dataStorage.loadUser<any[]>(ensureUser(), 'credentials.json', key ? { encrypt: true, key } : undefined) || []; } catch { return []; } 
+}
+export async function loadSettingsJSON(..._args: any[]): Promise<any> { 
+  const key = resolveKey(..._args);
+  try { 
+    const data = await dataStorage.loadUser<any>(ensureUser(), 'settings.json', key ? { encrypt: true, key } : undefined);
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      return data;
+    }
+    return {}; 
+  } catch { return {}; } 
+}
+export async function loadTunnelsJSON(..._args: any[]): Promise<any[]> { try { return await dataStorage.loadUser<any[]>(ensureUser(), 'tunnels.json') || []; } catch { return []; } }
+export async function loadActivityLogsJSON(..._args: any[]): Promise<any[]> { try { return await dataStorage.loadUser<any[]>(ensureUser(), 'activity_logs.json') || []; } catch { return []; } }
+export async function loadWorkflowsJSON(..._args: any[]): Promise<any[]> { 
+  const key = resolveKey(..._args);
+  try { return await dataStorage.loadUser<any[]>(ensureUser(), 'workflows.json', key ? { encrypt: true, key } : undefined) || []; } catch { return []; } 
+}
+export async function loadSiteConfigsJSON(..._args: any[]): Promise<any[]> { 
+  const key = resolveKey(..._args);
+  try { return await dataStorage.loadUser<any[]>(ensureUser(), 'site_configs.json', key ? { encrypt: true, key } : undefined) || []; } catch { return []; } 
+}
+export async function loadDomainStatusJSON(..._args: any[]): Promise<any[]> { try { return await dataStorage.loadUser<any[]>(ensureUser(), 'domain_status.json') || []; } catch { return []; } }
+export async function loadDatabasesJSON(..._args: any[]): Promise<any[]> { try { return await dataStorage.loadUser<any[]>(ensureUser(), 'databases.json') || []; } catch { return []; } }
+export async function loadDatabasesCacheJSON(..._args: any[]): Promise<any> { try { return await dataStorage.loadUser<any>(ensureUser(), 'databases_cache.json') || null; } catch { return null; } }
+
+// =====================
+// SAVE - Accept ...args, ignore extras  
+// =====================
+export async function saveSitesJSON(..._args: any[]): Promise<void> { const data = _args[0] || []; await dataStorage.saveUser(ensureUser(), 'sites.json', data); }
+export async function saveTagsJSON(..._args: any[]): Promise<void> { const data = _args[0] || []; await dataStorage.saveUser(ensureUser(), 'tags.json', data); }
+export async function saveNotesJSON(..._args: any[]): Promise<void> { 
+  const data = _args[0] || [];
+  const key = resolveKey(_args[1]);
+  await dataStorage.saveUser(ensureUser(), 'notes.json', data, key ? { encrypt: true, key } : undefined); 
+}
+export async function saveCredentialsJSON(..._args: any[]): Promise<void> { 
+  const data = _args[0] || [];
+  const key = resolveKey(_args[1]);
+  await dataStorage.saveUser(ensureUser(), 'credentials.json', data, key ? { encrypt: true, key } : undefined); 
+}
+export async function saveSettingsJSON(..._args: any[]): Promise<void> {
+  let data = _args[0] || {};
+  if (typeof data === 'object' && !Array.isArray(data) && data !== null) {
+  } else if (_args.length >= 2 && typeof _args[1] === 'object') {
+    data = _args[1];
+  } else {
+    data = {};
+  }
+  const key = resolveKey(_args[1]);
+  await dataStorage.saveUser(ensureUser(), 'settings.json', data, key ? { encrypt: true, key } : undefined); 
+}
+export async function saveTunnelsJSON(..._args: any[]): Promise<void> { const data = _args[0] || []; await dataStorage.saveUser(ensureUser(), 'tunnels.json', data); }
+export async function saveActivityLogsJSON(..._args: any[]): Promise<void> { const data = _args[0] || []; await dataStorage.saveUser(ensureUser(), 'activity_logs.json', data); }
+export async function saveWorkflowsJSON(..._args: any[]): Promise<void> { 
+  const data = _args[0] || [];
+  const key = resolveKey(_args[1]);
+  await dataStorage.saveUser(ensureUser(), 'workflows.json', data, key ? { encrypt: true, key } : undefined); 
+}
+export async function saveSiteConfigsJSON(..._args: any[]): Promise<void> { 
+  const data = _args[0] || [];
+  const key = resolveKey(_args[1]);
+  await dataStorage.saveUser(ensureUser(), 'site_configs.json', data, key ? { encrypt: true, key } : undefined); 
+}
+export async function saveDomainStatusJSON(..._args: any[]): Promise<void> { const data = _args[0] || []; await dataStorage.saveUser(ensureUser(), 'domain_status.json', data); }
+export async function saveDatabasesJSON(..._args: any[]): Promise<void> { const data = _args[0] || []; await dataStorage.saveUser(ensureUser(), 'databases.json', data); }
+export async function saveDatabasesCacheJSON(..._args: any[]): Promise<void> { const data = _args[0] || { key: '', data: [], timestamp: 0 }; await dataStorage.saveUser(ensureUser(), 'databases_cache.json', data); }
+
+// =====================
+// ACTIVITY LOGGING
+// =====================
+export async function logActivityJSON(_first?: any, _second?: any, _third?: any, _fourth?: any, _fifth?: any): Promise<void> {
+  // Handle old: logActivityJSON(user, action, type, id, name) and new: logActivityJSON(action, type, id, name)
+  let action: any, entity_type: any, entity_id: any, entity_name: any;
+  if (typeof _first === 'string' && ['delete', 'create', 'update', 'deploy', 'error'].includes(_first)) {
+    action = _first; entity_type = _second; entity_id = _third; entity_name = _fourth;
+  } else {
+    action = _second; entity_type = _third; entity_id = _fourth; entity_name = _fifth;
+  }
+  if (!action || !entity_type) return;
+  const logs = await loadActivityLogsJSON();
+  logs.push({ id: crypto.randomUUID(), action, entity_type, entity_id, entity_name, timestamp: Date.now() });
+  await saveActivityLogsJSON(logs);
+}
+
+// =====================
+// DELETE
+// =====================
+export async function deleteUserData(username: string) {
+  // Delete individual files first
+  const files = ['user.json', 'settings.json', 'tunnels.json', 'activity_logs.json', 'credentials.json', 'notes.json', 'sites.json', 'tags.json', 'site_configs.json', 'workflows.json', 'domain_status.json', 'databases.json', 'databases_cache.json'];
+  for (const file of files) { 
+    await dataStorage.removeUser(username, file); 
+  }
   
-  return openDB<AmpManagerDBSchema>(dbName, DB_VERSION, {
-    upgrade(db, oldVersion, newVersion, transaction) {
-      // Settings Store
-      if (!db.objectStoreNames.contains('settings')) {
-        db.createObjectStore('settings', { keyPath: 'key' });
-      }
-
-      // Tags Store
-      if (!db.objectStoreNames.contains('tags')) {
-        const tagStore = db.createObjectStore('tags', { keyPath: 'id' });
-        tagStore.createIndex('by-name', 'name', { unique: true });
-      }
-
-      // Sites Store
-      if (!db.objectStoreNames.contains('sites')) {
-        const siteStore = db.createObjectStore('sites', { keyPath: 'id' });
-        siteStore.createIndex('by-domain', 'domain', { unique: true });
-        siteStore.createIndex('by-tags', 'tags', { multiEntry: true });
-      }
-
-      // Notes Store
-      if (!db.objectStoreNames.contains('notes')) {
-        const noteStore = db.createObjectStore('notes', { keyPath: 'id' });
-        noteStore.createIndex('by-site', 'site_id');
-        noteStore.createIndex('by-created', 'created_at');
-        noteStore.createIndex('by-tags', 'tags', { multiEntry: true });
-      } else {
-        const noteStore = transaction.objectStore('notes');
-        if (!noteStore.indexNames.contains('by-tags')) {
-          noteStore.createIndex('by-tags', 'tags', { multiEntry: true });
-        }
-      }
-
-      // Tasks Store
-      if (!db.objectStoreNames.contains('tasks')) {
-        const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
-        taskStore.createIndex('by-site', 'site_id');
-        taskStore.createIndex('by-due-date', 'due_date');
-        taskStore.createIndex('by-status', 'status');
-      }
-
-      // Env History Store
-      if (!db.objectStoreNames.contains('env_history')) {
-        const envStore = db.createObjectStore('env_history', { keyPath: 'id', autoIncrement: true });
-        envStore.createIndex('by-timestamp', 'timestamp');
-      }
-
-      // Site Configs Store
-      if (!db.objectStoreNames.contains('site_configs')) {
-        const configStore = db.createObjectStore('site_configs', { keyPath: 'id', autoIncrement: true });
-        configStore.createIndex('by-site', 'site_id');
-        configStore.createIndex('by-version', 'version');
-        configStore.createIndex('by-active', 'is_active');
-      }
-
-      // Workflows Store
-      if (!db.objectStoreNames.contains('workflows')) {
-        const workflowStore = db.createObjectStore('workflows', { keyPath: 'id' });
-        workflowStore.createIndex('by-updated', 'updated_at');
-      }
-
-      // Credentials Store
-      if (!db.objectStoreNames.contains('credentials')) {
-        const credStore = db.createObjectStore('credentials', { keyPath: 'id' });
-        credStore.createIndex('by-name', 'name', { unique: true });
-        credStore.createIndex('by-type', 'type');
-      }
-
-      // Metrics Store
-      if (!db.objectStoreNames.contains('metrics')) {
-        const metricStore = db.createObjectStore('metrics', { keyPath: 'id', autoIncrement: true });
-        metricStore.createIndex('by-timestamp', 'timestamp');
-      }
-
-      // Config Backups Store
-      if (!db.objectStoreNames.contains('config_backups')) {
-        const backupStore = db.createObjectStore('config_backups', { keyPath: 'id' });
-        backupStore.createIndex('by-filename', 'filename');
-        backupStore.createIndex('by-type', 'type');
-      }
-
-      // Activity Logs Store
-      if (!db.objectStoreNames.contains('activity_logs')) {
-        const activityStore = db.createObjectStore('activity_logs', { keyPath: 'id' });
-        activityStore.createIndex('by-timestamp', 'timestamp');
-      }
-
-      // Databases Store
-      if (!db.objectStoreNames.contains('databases')) {
-        const dbStore = db.createObjectStore('databases', { keyPath: 'name' });
-        dbStore.createIndex('by-tags', 'tags', { multiEntry: true });
-      }
-
-      // Databases Cache Store
-      if (!db.objectStoreNames.contains('databases_cache')) {
-        db.createObjectStore('databases_cache', { keyPath: 'key' });
-      }
-
-      // Tunnels Store
-      if (!db.objectStoreNames.contains('tunnels')) {
-        db.createObjectStore('tunnels', { keyPath: 'domain' });
-      }
-
-      // Domain Status Store (v14)
-      if (!db.objectStoreNames.contains('domain_status')) {
-        const statusStore = db.createObjectStore('domain_status', { keyPath: 'domain' });
-        statusStore.createIndex('by-status', 'status');
-      }
-    },
-  });
-}
-
-export async function deleteUserDB(username: string): Promise<void> {
-  const dbName = `AmpManagerDB_${username}`;
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.deleteDatabase(dbName);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-    req.onblocked = () => {
-      // Another tab has the database open - resolve anyway, deletion completes later
-      resolve();
-    };
-  });
+  // Delete entire user folder using native Neutralino
+  const userDir = `users/user_${username}`;
+  try {
+    await ampBridge.fs.remove(userDir);
+  } catch {
+    // Ignore - folder might not exist
+  }
+  
+  // Update config
+  const config = await dataStorage.load<any>('config.json');
+  if (config) { config.lastUser = null; await dataStorage.save('config.json', config); }
 }
