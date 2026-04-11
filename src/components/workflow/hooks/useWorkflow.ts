@@ -2,12 +2,20 @@ import { useState, useCallback, useEffect } from 'react';
 import { Node, Edge, applyNodeChanges, applyEdgeChanges, addEdge, OnNodesChange, OnEdgesChange, OnConnect } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/utils/toast';
-import { initDB, logActivity } from '@/lib/db';
+import { 
+  loadSitesJSON,
+  loadCredentialsJSON,
+  loadWorkflowsJSON,
+  saveWorkflowsJSON,
+  loadTagsJSON,
+  loadNotesJSON,
+  saveNotesJSON,
+  logActivityJSON
+} from '@/lib/db';
 import { decryptWithKey } from '@/lib/crypto';
 import { CustomNodeData, Workflow } from '../types';
 import { ampBridge } from '@/services/AMPBridge';
 import type { Domain, Credential, Tag } from '@/types';
-// import type { Domain, Credential, Tag } from '@/types/entities';
 
 export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | null) {
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -61,7 +69,6 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
 
   const loadData = useCallback(async () => {
     if (!user) return;
-    const db = await initDB(user);
     
     let loadedSites: any[] = [];
     try {
@@ -80,13 +87,13 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
     }
     setSites(loadedSites);
 
-    const loadedCreds = await db.getAll('credentials');
+    const loadedCreds = await loadCredentialsJSON(user, encryptionKey || undefined);
     setCredentials(loadedCreds);
 
-    const workflows = await db.getAll('workflows');
+    const workflows = await loadWorkflowsJSON();
     setSavedWorkflows(workflows);
 
-    const tags = await db.getAll('tags');
+    const tags = await loadTagsJSON();
     setAllTags(tags);
 
     if (workflows.length > 0) {
@@ -184,13 +191,13 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
 
   const handleRun = async () => {
     if (!ampBridge.isAvailable()) {
-      toast.error("Workflow refused — AMP Bridge not available.");
+      toast.error("Workflow refused Ã¢ÂÂ AMP Bridge not available.");
       return;
     }
     
     const startNode = nodes.find(n => n.type === 'source');
     if (!startNode) {
-      toast.error("Workflow refused — No Source Node found.");
+      toast.error("Workflow refused Ã¢ÂÂ No Source Node found.");
       return;
     }
 
@@ -201,11 +208,11 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
     const sourceRemoteUrl = sourceData.remoteUrl;
 
     if (isSourceLocal && !sourceDomain) {
-      toast.error("Workflow refused — Local Source missing domain.");
+      toast.error("Workflow refused Ã¢ÂÂ Local Source missing domain.");
       return;
     }
     if (isSourceRemote && !sourceRemoteUrl) {
-      toast.error("Workflow refused — Remote Source missing URL.");
+      toast.error("Workflow refused Ã¢ÂÂ Remote Source missing URL.");
       return;
     }
     
@@ -225,7 +232,7 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
       const actionNodes = nodes.filter(n => n.type === 'action');
       const firstActionWithDomain = actionNodes.find(n => (n.data as CustomNodeData).domain);
       if (!firstActionWithDomain) {
-        toast.error("Workflow refused — No local domain context found in Source, Target, or Actions.");
+        toast.error("Workflow refused Ã¢ÂÂ No local domain context found in Source, Target, or Actions.");
         return;
       }
       workingDomain = (firstActionWithDomain.data as CustomNodeData).domain as string;
@@ -332,7 +339,7 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
             isSuccess = false;
             failedStep = `Step ${stepCount}`;
             executionLog.push(`${stepCount}. **Action:** ${actionType.toUpperCase()} (Failed: ${err.message || String(err)})`);
-            toast.error(`Workflow error — ${err.message || String(err)}`);
+            toast.error(`Workflow error Ã¢ÂÂ ${err.message || String(err)}`);
             setNodes((nds) => nds.map(n => n.id === nextNode.id ? { ...n, data: { ...n.data, status: 'error' } } : n));
             break;
           }
@@ -400,7 +407,7 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
             isSuccess = false;
             failedStep = `Step ${stepCount}`;
             executionLog.push(`${stepCount}. **Target:** ${isTargetLocal ? 'LOCAL' : bridgeType.toUpperCase()} (Error: ${err.message || String(err)})`);
-            toast.error(`Workflow error — ${err.message || String(err)}`);
+            toast.error(`Workflow error Ã¢ÂÂ ${err.message || String(err)}`);
             setNodes((nds) => nds.map(n => n.id === nextNode.id ? { ...n, data: { ...n.data, status: 'error' } } : n));
             break;
           }
@@ -411,15 +418,14 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
       }
     } finally {
       if (user) {
-        const db = await initDB(user);
         const dateStr = new Date().toLocaleString();
-        const statusStr = isSuccess ? "✅ Success" : `❌ Failed at ${failedStep}`;
+        const statusStr = isSuccess ? "Ã¢ÂÂ Success" : `Ã¢ÂÂ Failed at ${failedStep}`;
         
         const markdownContent = `**Workflow:** ${workflowTitle || "Untitled Workflow"}\n**Date:** ${dateStr}\n**Status:** ${statusStr}\n\n### Execution Log:\n${executionLog.join('\n')}\n`;
 
         const newNote = {
           id: uuidv4(),
-          title: isSuccess ? `🚀 Pipeline Success: ${workingDomain}` : `❌ Pipeline Failed: ${workingDomain}`,
+          title: isSuccess ? `Ã°ÂÂÂ Pipeline Success: ${workingDomain}` : `Ã¢ÂÂ Pipeline Failed: ${workingDomain}`,
           content: markdownContent,
           tags: isSuccess ? ['deploy'] : ['fail', 'deploy'],
           site_id: workingDomain,
@@ -428,19 +434,20 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
           updated_at: Date.now()
         };
 
-        await db.put('notes', newNote);
+        const allNotes = await loadNotesJSON(user, encryptionKey || undefined);
+        allNotes.push(newNote);
+        await saveNotesJSON(user, allNotes, encryptionKey || undefined);
         toast.success("Pipeline log saved to Notes");
       }
 
       if (isSuccess) {
-        toast.success("🏁 Pipeline Execution Finished.");
+        toast.success("Ã°ÂÂÂ Pipeline Execution Finished.");
       }
     }
   };
 
   const confirmSave = useCallback(async () => {
     if (!user) return;
-    const db = await initDB(user);
     
     const cleanNodes = nodes.map(node => {
       const { sites, onChange, ...cleanData } = node.data as CustomNodeData;
@@ -461,30 +468,39 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
       updated_at: Date.now()
     };
 
-    await db.put('workflows', workflow);
-    await logActivity(db, currentWorkflowId ? 'update' : 'create', 'workflow', workflow.id, workflow.title);
+    const allWorkflows = await loadWorkflowsJSON();
+    const existingIndex = allWorkflows.findIndex(w => w.id === workflow.id);
+    if (existingIndex >= 0) {
+      allWorkflows[existingIndex] = workflow;
+    } else {
+      allWorkflows.push(workflow);
+    }
+    await saveWorkflowsJSON(allWorkflows);
+    
+    await logActivityJSON(user, currentWorkflowId ? 'update' : 'create', 'workflow', workflow.id, workflow.title);
     toast.success("Workflow saved successfully");
     
-    const updatedWorkflows = await db.getAll('workflows');
+    const updatedWorkflows = await loadWorkflowsJSON();
     setSavedWorkflows(updatedWorkflows);
     setCurrentWorkflowId(workflow.id);
   }, [user, nodes, currentWorkflowId, workflowTitle, workflowDesc, workflowTags, edges]);
 
   const confirmDelete = useCallback(async () => {
     if (!user || !currentWorkflowId) return;
-    const db = await initDB(user);
     
     const workflowToDelete = savedWorkflows.find(w => w.id === currentWorkflowId);
-    
-    await db.delete('workflows', currentWorkflowId);
+
+    const allWorkflows = await loadWorkflowsJSON();
+    const filtered = allWorkflows.filter(w => w.id !== currentWorkflowId);
+    await saveWorkflowsJSON(filtered);
     
     if (workflowToDelete) {
-      await logActivity(db, 'delete', 'workflow', currentWorkflowId, workflowToDelete.title);
+      await logActivityJSON(user, 'delete', 'workflow', currentWorkflowId, workflowToDelete.title);
     }
     
     toast.success("Workflow deleted successfully");
     
-    const updatedWorkflows = await db.getAll('workflows');
+    const updatedWorkflows = await loadWorkflowsJSON();
     setSavedWorkflows(updatedWorkflows);
     
     handleNewWorkflow(sites);
