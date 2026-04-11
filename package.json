@@ -1,7 +1,7 @@
 {
   "name": "amp-manager",
   "version": "1.0.0",
-  "description": "Local development stack for students and junior developers – from code consumer to system architect mindset",
+  "description": "Local development stack for students and junior developers â€“ from code consumer to system architect mindset",
   "author": "Nuno Luciano",
   "contributors": [
     {
@@ -25,7 +25,7 @@
     "dev:app": "neu run",
     "build": "vite build",
     "build:app": "neu build",
-    "build:clean": "node -e \"const fs=require('fs');const p='dist/amp-manager';try{fs.readdirSync(p).filter(f=>f.includes('linux')||f.includes('mac')||f.includes('win_arm')).forEach(f=>{const p2=p+'/'+f;if(fs.statSync(p2).isDirectory())fs.rmSync(p2,{recursive:true});else fs.unlinkSync(p2);})}catch(e){}console.log('Cleaned non-Windows files');\"",
+    "build:clean": "node -e \"const fs=require('fs');const p='dist/amp-manager';try{fs.readdirSync(p).filter(f=>f.includes('linux')||f.includes('mac')||f.includes('win_arm')||f==='bin').forEach(f=>{const p2=p+'/'+f;if(fs.statSync(p2).isDirectory())fs.rmSync(p2,{recursive:true});else fs.unlinkSync(p2);})}catch(e){}console.log('Cleaned non-Windows files + bin/');\"",
     "build:win": "npm run build:app && npm run build:clean",
     "preview": "vite preview",
     "clean": "rm -rf dist",
@@ -46,7 +46,6 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
-    "idb": "^8.0.3",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.0",

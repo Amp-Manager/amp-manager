@@ -25,29 +25,34 @@ if not exist "%BUILD_DIR%" (
 
 echo Cleaning non-Windows build artifacts...
 
-:: Remove Linux directories
-for /d %%D in ("%BUILD_DIR%\*-linux*") do (
-    echo Removing: %%~nxD
-    rmdir /S /Q "%%D" 2>nul
+:: Remove Linux files (they are executables in root)
+del /Q "%BUILD_DIR%\*-linux*" 2>nul
+del /Q "%BUILD_DIR%\*-linux*" 2>nul
+
+:: Remove macOS files
+del /Q "%BUILD_DIR%\*-mac*" 2>nul
+del /Q "%BUILD_DIR%\*-mac*" 2>nul
+
+:: Remove ARM Windows files  
+del /Q "%BUILD_DIR%\*-win_arm*" 2>nul
+del /Q "%BUILD_DIR%\*-win_arm*" 2>nul
+
+:: Remove bin/ folder
+if exist "%BUILD_DIR%\bin" (
+    echo Removing: bin\
+    rmdir /S /Q "%BUILD_DIR%\bin" 2>nul
 )
 
-:: Remove macOS directories
-for /d %%D in ("%BUILD_DIR%\*-mac*") do (
-    echo Removing: %%~nxD
-    rmdir /S /Q "%%D" 2>nul
-)
-
-:: Remove ARM Windows directories
-for /d %%D in ("%BUILD_DIR%\*-win_arm*") do (
-    echo Removing: %%~nxD
-    rmdir /S /Q "%%D" 2>nul
+:: Also remove any directories that may exist
+for /d %%D in ("%BUILD_DIR%") do (
+    echo Checking: %%~nxD
 )
 
 echo.
 echo ================================================
 echo Current build contents:
 echo ================================================
-dir "%BUILD_DIR%"
+dir "%BUILD_DIR%\*.*"
 
 echo.
 echo Done! Windows x64 build ready.

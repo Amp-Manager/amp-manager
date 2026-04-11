@@ -6,9 +6,10 @@
 :: Provides configuration checks, tasks for domain management, and CA handling.
 :: Author: Nuno Luciano
 :: Date: 2026-02-25
-:: Version: 1.11.3
+:: Version: 1.0.0
 :: LICENSE: MIT
 :: ==========================================================
+
 chcp 65001 >nul
 setlocal EnableDelayedExpansion
 
@@ -99,6 +100,14 @@ goto :HELP
 echo {"status":"error","message":"Invalid or missing task","supported":["status","env_status","runtime_status","scan_domains","list_domains","new_domain","remove_domain","generate_config","ca_status","ca_reset","ca_uninstall","regenerate_ssl","regenerate_all_ssl","ssh_key_status","ssh_key_generate","docker_desktop_launch","docker_up","docker_stop","restart_angie","restart_runtime","docker_restart","docker_env_metrics","clear_cache","clear_logs","version"]}
 exit /b 1
 
+
+:VERSION
+setlocal EnableDelayedExpansion
+echo {"status":"ok","version":"1.0.0","build":"2026-03-07","engine":"amp-manager-batch"}
+endlocal
+exit /b 0
+
+
 :STATUS
 setlocal EnableDelayedExpansion
 :: Check Docker version availability
@@ -143,11 +152,6 @@ if "!EXTS!"=="" (
 endlocal
 exit /b 0
 
-:VERSION
-setlocal EnableDelayedExpansion
-echo {"status":"ok","version":"1.0.0","build":"2026-03-07","engine":"amp-manager-batch"}
-endlocal
-exit /b 0
 
 :CLEAR_CACHE
 setlocal EnableDelayedExpansion
@@ -456,7 +460,7 @@ set "NAME=%~2"
 set "SCAFFOLD_FLAG=%~3"
 if "%NAME%"=="" echo {"status":"error","message":"No project name provided"} & exit /b 1
 
-:: Clean name → domain (lowercase)
+:: Clean name domain (lowercase)
 set "NAME=!NAME: =!"
 set "NAME=!NAME:.local=!"
 :: Convert to lowercase
@@ -1074,6 +1078,7 @@ exit /b 0
 
 
 :: DOCKER ACTIONS
+
 :DOCKER_UP
 setlocal EnableDelayedExpansion
 
@@ -1305,10 +1310,19 @@ endlocal & exit /b 1
 
 
 :: Environment status
+
 :ENV_STATUS
 setlocal EnableDelayedExpansion
 
 set "status=ok"
+
+:: Check admin elevation
+net session >nul 2>&1
+if %errorlevel%==0 (
+    set "is_admin=true"
+) else (
+    set "is_admin=false"
+)
 
 :: Check docker-compose.yml
 if exist "%PROJECT_ROOT%\docker-compose.yml" (
@@ -1405,7 +1419,7 @@ if errorlevel 1 (
 
 :: Output JSON (single line)
 set "ESCAPED_ROOT=%PROJECT_ROOT:\=\\%"
-echo {"status":"!status!","project_root":"!ESCAPED_ROOT!","docker_compose":"!docker_compose!","angie_conf":"!angie_conf!","db_init":"!db_init!","php_ini":"!php_ini!","data_folder":"!data_folder!","www_folder":"!www_folder!","cert_file":"!cert_file!","mkcert":"!mkcert!","caroot_ok":"!caroot_ok!","docker_running":"!docker_running!","angie_conf_date":"!angie_conf_date!","cert_file_date":"!cert_file_date!","www_folder_date":"!www_folder_date!"}
+echo {"status":"!status!","is_admin":"!is_admin!","project_root":"!ESCAPED_ROOT!","docker_compose":"!docker_compose!","angie_conf":"!angie_conf!","db_init":"!db_init!","php_ini":"!php_ini!","data_folder":"!data_folder!","www_folder":"!www_folder!","cert_file":"!cert_file!","mkcert":"!mkcert!","caroot_ok":"!caroot_ok!","docker_running":"!docker_running!","angie_conf_date":"!angie_conf_date!","cert_file_date":"!cert_file_date!","www_folder_date":"!www_folder_date!"}
 
 endlocal & exit /b 0
 

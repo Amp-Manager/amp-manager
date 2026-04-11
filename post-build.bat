@@ -23,6 +23,7 @@ set "APP_NAME=AMP-Manager"
 set "BUILD_DIR=dist\amp-manager"
 set "MANIFEST_FILE=requireAdmin.manifest"
   
+
 :: Find the latest Windows x64 executable
 for /f "delims=" %%A in ('dir /b /a-d "%BUILD_DIR%\%APP_NAME%-win_x64.exe" 2^>nul') do set "EXE_FILE=%%A"
 if not defined EXE_FILE (

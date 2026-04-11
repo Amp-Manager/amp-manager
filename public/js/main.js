@@ -311,28 +311,7 @@ window.AMP = {
     }
 };
 
-// System Tray
-/* function setTray() {
-    if (NL_MODE !== "window") return;
-    Neutralino.os.setTray({
-        icon: "/resources/icons/trayIcon.png",
-        menuItems: [
-            { id: "OPEN", text: "Open AMP Manager" },
-            { id: "QUIT", text: "Quit" }
-        ]
-    });
-    
-} */
-
-/* Neutralino.events.on("trayMenuItemClicked", event => {
-    if (event.detail.id === "OPEN") Neutralino.window.show();
-    if (event.detail.id === "QUIT") Neutralino.app.exit();
-}); */
-
-
+// ------------------------------------------------------------
 // Init
+// ------------------------------------------------------------
 Neutralino.init();
-
-Neutralino.events.on("ready", () => {
-//    setTray();
-});
