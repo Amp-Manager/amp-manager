@@ -10,6 +10,9 @@ export default defineConfig(({mode}) => {
   return {
     base: isProd ? './' : '/',
     plugins: [react(), tailwindcss()],
+    define: {
+      __AMP_DEV__: !isProd,
+    },
     resolve: { alias: { '@': path.resolve(__dirname, './src') } },
     ...(isProd && {
       build: {
