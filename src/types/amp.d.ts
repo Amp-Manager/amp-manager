@@ -6,6 +6,9 @@ import type { Domain, Tag } from './entities';
 import type { DockerStat, DockerDisk } from './docker';
 
 declare global {
+  // Vite compile-time dev mode flag
+  const __AMP_DEV__: boolean;
+
   interface Window {
     Neutralino: any;
     AMP: {

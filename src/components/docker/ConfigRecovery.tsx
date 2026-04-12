@@ -77,7 +77,7 @@ export function ConfigRecovery() {
               <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
               <div className="text-xs space-y-1">
                 <p className="font-bold">Stability Protection</p>
-                <p className="opacity-70 leading-relaxed">
+                <p className="opacity-80 leading-relaxed">
                   These essential files are backed up automatically on first run. 
                   If you break your Docker stack, you can restore them to their "Factory" state here.
                 </p>

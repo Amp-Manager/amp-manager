@@ -5,6 +5,84 @@ import type { AmpResponse, DockerStat, DockerDisk, Domain } from '@/types';
  * Centralizes all communication with the Neutralino.js backend (window.AMP).
  * Priority: Desktop application stability and predictable UI.
  */
+
+/**
+ * Execute a command with timeout to prevent hanging.
+ * Critical for preventing Neutralino backend freeze.
+ */
+export async function execWithTimeout(
+  command: string,
+  timeoutMs: number = 30000
+): Promise<{ exitCode: number; stdOut: string; stdErr: string }> {
+  return new Promise(async (resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error(`Command timed out after ${timeoutMs}ms: ${command}`));
+    }, timeoutMs);
+
+    try {
+      const result = await ampBridge.os.execCommand(command);
+      clearTimeout(timeout);
+      resolve(result);
+    } catch (err) {
+      clearTimeout(timeout);
+      reject(err);
+    }
+  });
+}
+
+/**
+ * Execute a backend call with retry logic.
+ * Helps recover from transient IPC failures.
+ */
+export async function execWithRetry<T>(
+  fn: () => Promise<T>,
+  retries: number = 3,
+  delayMs: number = 1000
+): Promise<T> {
+  let lastError: Error;
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (e: any) {
+      lastError = e;
+      if (e.code === 'NE_RT_NATRTER' || e.message?.includes('not allowed')) {
+        throw e;
+      }
+      if (i < retries - 1) {
+        await new Promise(r => setTimeout(r, delayMs * (i + 1)));
+      }
+    }
+  }
+  throw lastError!;
+}
+
+/**
+ * Start heartbeat keepalive to prevent Windows from suspending the app.
+ * Sends periodic lightweight IPC calls to keep backend responsive.
+ */
+let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
+
+export function startKeepalive(intervalMs: number = 30000): void {
+  if (keepaliveInterval) return;
+
+  keepaliveInterval = setInterval(async () => {
+    try {
+      await ampBridge.status();
+      console.log('[Keepalive] Backend responsive');
+    } catch (e) {
+      console.warn('[Keepalive] Backend unresponsive:', e);
+    }
+  }, intervalMs);
+}
+
+export function stopKeepalive(): void {
+  if (keepaliveInterval) {
+    clearInterval(keepaliveInterval);
+    keepaliveInterval = null;
+  }
+}
+
 class AMPBridge {
   private static instance: AMPBridge;
 
@@ -18,9 +96,18 @@ class AMPBridge {
   }
 
   /**
+   * Check if running in development mode (browser localhost)
+   * Uses compile-time flag from Vite - only true during npm run dev
+   */
+  public isDevMode(): boolean {
+    return typeof __AMP_DEV__ !== 'undefined' && __AMP_DEV__ === true;
+  }
+
+  /**
    * Check if the AMP backend is available (running in Neutralino)
    */
   public isAvailable(): boolean {
+    if (this.isDevMode()) return false;
     return typeof window !== 'undefined' && !!window.AMP;
   }
 
@@ -29,7 +116,7 @@ class AMPBridge {
    */
   private async call<T>(method: string, ...args: any[]): Promise<T> {
     if (!this.isAvailable()) {
-      throw new Error('Backend not connected. Please restart the desktop application.');
+      throw new Error('Backend not connected. Running in browser dev mode?');
     }
 
     // Resolve nested methods like 'os.open'

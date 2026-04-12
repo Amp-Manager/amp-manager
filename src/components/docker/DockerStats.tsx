@@ -218,28 +218,36 @@ export default function DockerStats() {
                 {/* Docker Internal Storage */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="opacity-70">Docker Images</span>
+                    <span className="opacity-80">Docker Images</span>
                     <span className="font-bold">{disk?.Images?.[0]?.Size || '0 B'}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="opacity-70">Build Cache</span>
+                    <span className="opacity-80">Build Cache</span>
                     <span className="font-bold">{disk?.BuildCache?.[0]?.Size || '0 B'}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs text-warning">
-                    <span className="opacity-70">Reclaimable Space</span>
+                    <span className="opacity-80">Reclaimable Space</span>
                     <span className="font-bold">{disk?.Images?.[0]?.Reclaimable || '0 B'}</span>
                   </div>
                 </div>
 
                 {folderSizes.lastUpdated && !isNaN(new Date(folderSizes.lastUpdated).getTime()) && (
-                  <p className="text-[10px] opacity-40 text-center mt-2">
+                  <p className="text-[10px] opacity-70 text-center mt-2">
                     Last storage scan: {format(new Date(folderSizes.lastUpdated), 'HH:mm:ss')}
                   </p>
                 )}
+
               </div>
-              {/* storage scan */}
+
+              {/* Tip */}
+              <div role="alert" className="alert alert-info alert-soft shadow-sm py-2 text-[10px] leading-tight">
+                <Info className="w-4 h-4 shrink-0" />
+                <span>Storage scan is performed on-demand.</span>
+              </div>
+
+              {/* Action storage scan */}
               <button 
-                className="btn btn-sm badge-neutral btn-wide mb-2"
+                className="btn btn-sm badge-neutral btn-wide gap-2 mx-auto"
                 onClick={refreshFolderSizes}
                 disabled={isCalculatingFolders}
               >
@@ -251,11 +259,6 @@ export default function DockerStats() {
                 {isCalculatingFolders ? 'Scanning...' : 'Refresh'}
               </button>
 
-              {/* Tip */}
-              <div role="alert" className="alert alert-info alert-soft shadow-sm py-2 text-[10px] leading-tight">
-                <Info className="w-4 h-4 shrink-0" />
-                <span>Storage scan is performed on-demand.</span>
-              </div>
             </div>
           </div>
         </div>

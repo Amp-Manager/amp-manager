@@ -1,5 +1,5 @@
 import { AmpResponse } from "@/types";
-import { ampBridge } from "./AMPBridge";
+import { ampBridge, execWithTimeout } from "./AMPBridge";
 import { toast } from "@/utils/toast";
 
 export interface DatabaseInfo {
@@ -46,7 +46,7 @@ class DatabaseService {
     const folderNames = new Set<string>();
     try {
       const entries = await ampBridge.fs.readDirectory(dataPath);
-      // Verify entries is an array before forEach
+      // Ensure entries is an array before forEach
       if (Array.isArray(entries)) {
         entries.forEach((entry: any) => {
           if (entry.type === 'DIRECTORY' && entry.entry) {
@@ -126,7 +126,7 @@ class DatabaseService {
     if (type === 'url') {
       await ampBridge.os.open(toolPath);
     } else {
-      await ampBridge.os.execCommand(`"${toolPath}"`);
+      await execWithTimeout(`"${toolPath}"`, 30000);
     }
   }
 }
