@@ -4,7 +4,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { terminalService } from "@/services/TerminalService";
-import { Maximize2, Minimize2, Trash2, Terminal as TerminalIcon, Play } from "lucide-react";
+import { Trash2, Play } from "lucide-react";
 
 export default function AppTerminal() {
   const terminalRef = useRef<HTMLDivElement>(null);

@@ -48,7 +48,8 @@ class DatabaseService {
       const entries = await ampBridge.fs.readDirectory(dataPath);
       // Ensure entries is an array before forEach
       if (Array.isArray(entries)) {
-        entries.forEach((entry: any) => {
+        interface DirEntry { type?: string; entry?: string }
+        entries.forEach((entry: DirEntry) => {
           if (entry.type === 'DIRECTORY' && entry.entry) {
             folderNames.add(entry.entry);
           }
@@ -62,13 +63,11 @@ class DatabaseService {
     // Build integrity report
     return dbNames.map(name => {
       const folderExists = folderNames.has(name);
-      const dbExists = true;
-
       return {
         name,
-        status: (folderExists && dbExists) ? 'active' : 'orphaned',
+        status: folderExists ? 'active' : 'orphaned',
         folderExists,
-        dbExists
+        dbExists: true
       };
     });
   }
@@ -105,7 +104,7 @@ class DatabaseService {
       throw new Error(`Cannot delete system database "${dbName}".`);
     }
 
-    const result = await ampBridge.dbQuery(`delete${dbName}`);
+    const result = await ampBridge.dbQuery(`delete ${dbName}`);
     if (result.status !== 'ok') {
       throw new Error(result.message || 'Database deletion failed.');
     }
