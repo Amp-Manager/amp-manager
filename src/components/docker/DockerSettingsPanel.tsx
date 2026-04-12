@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDockerSettings } from '@/stores/dockerSettings';
 import { useDockerMetricsStore } from '@/stores/dockerMetricsStore';
-import { Settings, Activity } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 interface Props {
   nextRefresh?: number;

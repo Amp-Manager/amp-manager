@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, RotateCcw, Camera, Trash2, Check, AlertTriangle, Clock, FileText } from 'lucide-react';
+import { Shield, RotateCcw, Camera, Trash2, Check, AlertTriangle, Clock } from 'lucide-react';
 import { configGuardService, ESSENTIAL_FILES, ConfigBackup } from '@/services/ConfigGuardService';
 import { toast } from '@/utils/toast';
 import { format } from 'date-fns';

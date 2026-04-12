@@ -254,7 +254,7 @@ export default function Domains() {
     if (!ampBridge.isAvailable()) return;
     
     try {
-      for (const [domainName, tunnel] of Object.entries(activeTunnels)) {
+      for (const [_domainName, tunnel] of Object.entries(activeTunnels)) {
         try {
           const t = tunnel as TunnelRecord;
           await ampBridge.os.updateSpawnedProcess(t.processId, 'exit');

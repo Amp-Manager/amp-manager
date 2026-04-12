@@ -14,7 +14,7 @@ interface DomainConfigEditorProps {
 }
 
 export function DomainConfigEditor({ domain, open, onOpenChange, mode = 'edit' }: DomainConfigEditorProps) {
-  const { user } = useAuth();
+  useAuth(); // Required for auth context
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useState, useEffect, useRef } from "react";
-import { RefreshCw, FileText, AlertCircle, Loader2, Terminal, Download } from "lucide-react";
-import { toast } from "@/utils/toast";
+import { RefreshCw, Loader2, Terminal, Download } from "lucide-react";
+// import { toast } from "@/utils/toast";
 import { ampBridge } from "@/services/AMPBridge";
 
 interface DomainLogModalProps {

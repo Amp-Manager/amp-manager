@@ -12,7 +12,7 @@ interface Certificate {
 }
 
 export default function Certificates() {
-  const { user } = useAuth();
+  useAuth(); // Required for auth context
   const resetModalRef = useRef<HTMLDialogElement>(null);
   const uninstallModalRef = useRef<HTMLDialogElement>(null);
   const regenAllModalRef = useRef<HTMLDialogElement>(null);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Save, RotateCcw, Volume2, VolumeX, Bell, BellOff } from 'lucide-react';
+import { Loader2, Save, RotateCcw, Volume2, VolumeX, Bell } from 'lucide-react';
 import { toast } from '@/utils/toast';
 import { useToastSettings } from '@/context/ToastSettingsContext';
 import { ToastPosition } from '@/utils/toastSettings';

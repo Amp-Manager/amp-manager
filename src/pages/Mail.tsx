@@ -1,4 +1,4 @@
-import { Mail as MailIcon, ExternalLink, RefreshCw, Info } from "lucide-react";
+import { Mail as MailIcon, ExternalLink, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
 export default function Mail() {

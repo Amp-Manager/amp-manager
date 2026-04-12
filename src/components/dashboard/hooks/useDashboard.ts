@@ -5,7 +5,7 @@ import { useSync } from '@/context/SyncContext';
 import { parseWindowsTimestamp } from '@/lib/utils';
 import { configGuardService } from '@/services/ConfigGuardService';
 import { databaseService } from '@/services/DatabaseService';
-import { EnvStatus, DashboardCounts, WorkflowStatsData, DashboardData } from '../types';
+import { EnvStatus, DashboardCounts, WorkflowStatsData } from '../types';
 import { TimelineRow, TimelineEvent } from '../Timeline';
 import { ampBridge } from '@/services/AMPBridge';
 import { toast } from '@/utils/toast';
@@ -100,7 +100,6 @@ export function useDashboard(user: string | null) {
       // Save history and fetch stats
       await configGuardService.captureFactorySettings();
 
-      const timestamp = Date.now();
       const angieDate = parseWindowsTimestamp(envData.angie_conf_date);
       const certDate = parseWindowsTimestamp(envData.cert_file_date);
       const wwwDate = parseWindowsTimestamp(envData.www_folder_date);

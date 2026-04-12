@@ -3,7 +3,7 @@ import { toast } from '@/utils/toast';
 import { useAuth } from '@/context/AuthContext';
 import { loadTagsJSON, loadCredentialsJSON, saveCredentialsJSON, logActivityJSON } from '@/lib/db';
 import { encryptWithKey, decryptWithKey } from '@/lib/crypto';
-import { Key, Lock, Plus, Trash2, Eye, EyeOff, Save, Unlock, Loader2, Tag as TagIcon, Copy, Check } from 'lucide-react';
+import { Key, Lock, Plus, Trash2, Eye, EyeOff, Save, Unlock, Loader2, Copy, Check } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Tag } from '@/types';
 import { COLOR_MAP } from '@/components/layout/uiConstants';

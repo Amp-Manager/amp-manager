@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, Suspense, lazy } from "react";
-import { Plus, Loader2, Check, X, AlertCircle, Globe, AlertTriangle } from "lucide-react";
+import { Loader2, Check, AlertCircle, Globe, AlertTriangle } from "lucide-react";
 import { toast } from "@/utils/toast";
 import { AmpStep } from "@/types/amp";
 import { loadSitesJSON, saveSitesJSON, logActivityJSON } from "@/lib/db";

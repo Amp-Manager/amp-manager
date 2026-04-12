@@ -80,8 +80,6 @@ export function useProjectSync(): UseProjectSyncReturn {
       setCurrentStepIndex(1);
       setStepStatus('env', 'current');
 
-      const envResult = quickEnvResult; // Reuse
-
       setStepStatus('env', 'done');
 
       // CA Status
