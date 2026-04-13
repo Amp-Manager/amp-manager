@@ -102,7 +102,7 @@ For more details, see the documentation in the [Wiki](../../wiki)
 |----------|-------------|
 | [Core Concepts](../..//wiki/01‐Core‐Concepts) | How AMP works |
 | [For Developers](../..//wiki/02‐For-Developers) | Step-by-step for devs |
-| [For Students](../../iki/02‐For-Students) | Quick start for beginners |
+| [For Students](../../wiki/02‐For-Students) | Quick start for beginners |
 | [Architecture](../../wiki/03‐Architecture) | System design |
 | [State Management](../../wiki/03‐State-Management) | storage systems |
 | [Amp Tasks Reference](../../wiki/04‐Amp-Tasks-Reference) | Batch commands |
