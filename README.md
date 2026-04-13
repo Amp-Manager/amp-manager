@@ -99,14 +99,15 @@ Your domain is now available at `http://mysite.local` with automatic SSL!
 | Feature | AMP Manager | LocalWP | Laragon | XAMPP |
 |---------|-------------|---------|---------|-------|
 | **Offline-first** | ✅ Native | ⚠️ Requires config | ❌ | ❌ |
-| **Multi-stack (PHP/Node/Python)** | ✅ Unified UI | ❌ WordPress-only | ⚠️ Manual setup | ⚠️ Manual setup |
+| **Multi-stack (PHP/Node/Python)** | ✅ Unified UI | ❌ WordPress | ⚠️ Manual | ⚠️ Manual |
 | **Eco-aware resource usage** | ✅ Monitors + limits | ❌ | ❌ | ❌ |
-| **Portable / no install** | ✅ Single `.exe` | ❌ Installer required | ✅ Portable edition | ❌ Installer |
-| **Community governance** | ✅ Open + transparent | ❌ Corporate | ⚠️ Solo maintainer | ⚠️ Community-driven |
-| **Windows/macOS/Linux** | ❌ Windows only *1 | ❌ Windows/macOS only | ❌ Windows only | ✅ All |
-| **Free + open source** | ✅ MIT License | ❌ Freemium | ✅ Free (closed) | ✅ GPL |
+| **Portable / no install** | ✅ Single `.exe` | ❌ Installer | ✅ Portable edition | ❌ Installer |
+| **Community governance** | ✅ Open Source | ❌ Corporate | ⚠️ Individial | ⚠️ Community |
+| **Windows/macOS/Linux** | ❌ Windows *1 | ❌ Windows/macOS | ❌ Windows | ✅ All |
+| **Free + open source** | ✅ MIT License | ❌ Freemium | ❌ Paid (closed) | ✅ GPL |
 
-> 💡 **AMP Manager is for developers who value**: offline autonomy, cross-platform consistency, and sustainable resource usage.   
+> 💡 **AMP Manager is for developers who value**:   
+> offline autonomy, cross-platform consistency, and sustainable resource usage.   
 > *1 All via Neutralino  
 > *Table reflects public documentation as of April 2026. Features evolve, verify before deciding.*
 
