@@ -16,6 +16,10 @@ export default function Monitor() {
   const [nextRefresh, setNextRefresh] = useState<number>(0);
   const [progress, setProgress] = useState(100);
 
+  // Hot site detection thresholds
+  const HOT_SITE_REQUEST_THRESHOLD = 5;
+  const HOT_SITE_PROCESSING_THRESHOLD = 5;
+
   const fetchStats = async () => {
     try {
       const data = await angieStatusService.getStats();
@@ -32,10 +36,8 @@ export default function Monitor() {
           const prev = prevZones[name];
           if (prev) {
             const diff = current.requests.total - prev.requests.total;
-            // If more than 50 requests in the interval (e.g. 10s), mark as hot
-            // Or if processing is high
-            // I've set both values to 5 for testing !
-            if (diff > 5 || current.processing > 5) {
+            // Mark as hot when request growth or processing exceeds threshold
+            if (diff > HOT_SITE_REQUEST_THRESHOLD || current.processing > HOT_SITE_PROCESSING_THRESHOLD) {
               newHotSites.add(name);
             }
           }

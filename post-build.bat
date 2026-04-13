@@ -2,7 +2,7 @@
 :: ==========================================================
 :: AMP-MANAGER
 :: Post-build.bat
-:: A simple batch script to manage add manifestAdmin to executable
+:: A simple batch script to add manifestAdmin to executable
 :: Author: Nuno Luciano
 :: Date: 2026-02-25
 :: Version: 1.01.0

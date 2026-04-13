@@ -196,9 +196,19 @@ export function useDashboard(user: string | null) {
         if (processedEvents.has(key)) return;
         processedEvents.add(key);
 
-        let rowName = entityType.charAt(0).toUpperCase() + entityType.slice(1) + 's';
-        if (rowName === 'Domain') rowName = 'Domains';
-        if (rowName === 'Credential') rowName = 'Credentials';
+        const rowNameMap: Record<string, string> = {
+          domain: 'Domains',
+          credential: 'Credentials',
+          note: 'Notes',
+          workflow: 'Workflows',
+          database: 'Databases',
+          tag: 'Tags',
+          activity: 'Activities'
+        };
+
+        const normalized = entityType.toLowerCase();
+        const rowName = rowNameMap[normalized] ?? 
+          entityType.charAt(0).toUpperCase() + entityType.slice(1) + 's';
         
         const events = timelineMap.get(rowName) || [];
         let outcome: TimelineEvent['outcome'] = 'info';

@@ -15,19 +15,20 @@ export async function execWithTimeout(
   command: string,
   timeoutMs: number = 30000
 ): Promise<{ exitCode: number; stdOut: string; stdErr: string }> {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error(`Command timed out after ${timeoutMs}ms: ${command}`));
     }, timeoutMs);
 
-    try {
-      const result = await ampBridge.os.execCommand(command);
-      clearTimeout(timeout);
-      resolve(result);
-    } catch (err) {
-      clearTimeout(timeout);
-      reject(err);
-    }
+    ampBridge.os.execCommand(command)
+      .then((result) => {
+        clearTimeout(timeout);
+        resolve(result);
+      })
+      .catch((err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
   });
 }
 
