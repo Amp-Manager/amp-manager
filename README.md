@@ -93,6 +93,46 @@ Your domain is now available at `http://mysite.local` with automatic SSL!
 | Storage | JSON Files (users/ folder), Web Crypto for encryption |
 | Containers | Docker Compose (Angie, PHP, MariaDB) |
 
+
+## How AMP Manager Compares
+
+| Feature | AMP Manager | LocalWP | Laragon | XAMPP |
+|---------|-------------|---------|---------|-------|
+| **Offline-first** | ✅ Native | ⚠️ Requires config | ❌ | ❌ |
+| **Multi-stack (PHP/Node/Python)** | ✅ Unified UI | ❌ WordPress-only | ⚠️ Manual setup | ⚠️ Manual setup |
+| **Eco-aware resource usage** | ✅ Monitors + limits | ❌ | ❌ | ❌ |
+| **Portable / no install** | ✅ Single `.exe` | ❌ Installer required | ✅ Portable edition | ❌ Installer |
+| **Community governance** | ✅ Open + transparent | ❌ Corporate | ⚠️ Solo maintainer | ⚠️ Community-driven |
+| **Windows/macOS/Linux** | ❌ Windows only *1 | ❌ Windows/macOS only | ❌ Windows only | ✅ All |
+| **Free + open source** | ✅ MIT License | ❌ Freemium | ✅ Free (closed) | ✅ GPL |
+
+> 💡 **AMP Manager is for developers who value**: offline autonomy, cross-platform consistency, and sustainable resource usage.   
+> *1 All via Neutralino  
+> *Table reflects public documentation as of April 2026. Features evolve, verify before deciding.*
+
+## Key Concepts
+
+### Domains
+
+Local domains with automatic SSL. Each domain gets:
+- Auto-created folder in `www/`
+- SSL certificate via mkcert
+- Angie configuration
+- Hosts file entry
+
+### Containers
+
+Docker containers managed by AMP:
+- **Angie** - Web server
+- **PHP** - PHP runtime
+- **MariaDB** - Database
+- **Mailpit** - Email & SMTP tool
+
+### Encryption
+
+Sensitive data (credentials, notes, settings, workflows, site configs) is encrypted using AES-256-GCM with keys derived from your password.
+
+
 ## Documentation
 
 For more details, see the documentation in the [Wiki](../../wiki)
@@ -117,27 +157,7 @@ For more details, see the documentation in the [Wiki](../../wiki)
 | [Glossary](../../wiki/13‐Glossary) | Terms explained |
 
 
-## Key Concepts
 
-### Domains
-
-Local domains with automatic SSL. Each domain gets:
-- Auto-created folder in `www/`
-- SSL certificate via mkcert
-- Angie configuration
-- Hosts file entry
-
-### Containers
-
-Docker containers managed by AMP:
-- **Angie** - Web server
-- **PHP** - PHP runtime
-- **MariaDB** - Database
-- **Mailpit** - Email & SMTP tool
-
-### Encryption
-
-Sensitive data (credentials, notes, settings, workflows, site configs) is encrypted using AES-256-GCM with keys derived from your password.
 
 ---
 
