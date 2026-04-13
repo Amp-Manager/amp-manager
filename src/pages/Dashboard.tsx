@@ -21,7 +21,6 @@ export default function Dashboard() {
   const {
     env,
     dashboardCounts,
-    workflowStats,
     last7Days,
     timelineEvents,
     tagStats,

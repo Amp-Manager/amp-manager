@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Play, Square, Copy, Loader2, AlertTriangle, ExternalLink, Settings } from "lucide-react";
-import { loadSettingsJSON, saveSettingsJSON, loadTunnelsJSON, saveTunnelsJSON, loadCredentialsJSON } from "@/lib/db";
+import { loadSettingsJSON, loadTunnelsJSON, saveTunnelsJSON, loadCredentialsJSON } from "@/lib/db";
 import { useAuth } from "@/context/AuthContext";
 import { decryptWithKey } from "@/lib/crypto";
 import { toast } from "@/utils/toast";

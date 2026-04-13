@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Save, RotateCcw, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { loadSiteConfigsJSON, saveSiteConfigsJSON } from '@/lib/db';
-import { useBatchError } from '@/context/BatchErrorContext';
 import { ampBridge } from '@/services/AMPBridge';
 import { toast } from '@/utils/toast';
 
@@ -21,7 +20,6 @@ export function DomainConfigEditor({ domain, open, onOpenChange, mode = 'edit' }
   const [history, setHistory] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("editor");
   const [projectRoot, setProjectRoot] = useState("error");
-  const { handleError } = useBatchError();
   const modalRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {

@@ -1,6 +1,4 @@
 
-import React from 'react';
-
 export const SWATCH_COLORS = [
     'slate', 'gray', 'zinc', 'neutral', 'stone',
     'red', 'orange', 'amber', 'yellow', 'lime', 

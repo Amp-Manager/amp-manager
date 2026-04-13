@@ -1,6 +1,5 @@
 import { Terminal } from '@xterm/xterm';
 import { ampBridge } from './AMPBridge';
-import { toast } from '@/utils/toast';
 
 class TerminalService {
   private processId: number | null = null;

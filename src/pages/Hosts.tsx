@@ -4,11 +4,9 @@ import { HardDrive, RefreshCw, AlertCircle, Trash2, Loader2, AlertTriangle } fro
 import { toast } from "@/utils/toast";
 import { ampBridge } from "@/services/AMPBridge";
 import { loadDomainStatusJSON } from "@/lib/db";
-import { useAuth } from "@/context/AuthContext";
 import type { HostEntry } from "@/types/entities";
 
 export default function Hosts() {
-  const { user } = useAuth();
   const [hosts, setHosts] = useState<HostEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<string | null>(null);

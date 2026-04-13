@@ -30,11 +30,6 @@ function ensureUser(): string {
   return _currentUser;
 }
 
-function ensureEncryptionKey(): CryptoKey {
-  if (!_encryptionKey) throw new Error('Encryption key not available - please log in again');
-  return _encryptionKey;
-}
-
 // =====================
 // GLOBAL CONFIG
 // =====================

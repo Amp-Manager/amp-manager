@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { useDockerSettings } from "./dockerSettings";
-import { DockerStat, DockerDiskUsage, DockerInfo, DockerDisk } from "@/types";
+import { DockerStat, DockerDiskUsage, DockerInfo } from "@/types";
 import { ampBridge } from "@/services/AMPBridge";
 import { toast } from "@/utils/toast";
 

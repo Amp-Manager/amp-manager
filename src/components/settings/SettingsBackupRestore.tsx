@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { backupService } from '@/services/BackupService';
-import { DatabaseBackup, Download, Upload, ShieldAlert, FileJson, Check, AlertTriangle, Loader2 } from 'lucide-react';
+import { DatabaseBackup, Download, Upload, ShieldAlert, Check, AlertTriangle, Loader2 } from 'lucide-react';
 import { ampBridge } from '@/services/AMPBridge';
 
 export default function SettingsBackupRestore() {

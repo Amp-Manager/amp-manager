@@ -3,7 +3,6 @@ import { Node, Edge, applyNodeChanges, applyEdgeChanges, addEdge, OnNodesChange,
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/utils/toast';
 import { 
-  loadSitesJSON,
   loadCredentialsJSON,
   loadWorkflowsJSON,
   saveWorkflowsJSON,
