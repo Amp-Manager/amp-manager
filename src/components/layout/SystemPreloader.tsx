@@ -27,7 +27,6 @@ export function SystemPreloader({ isOpen, steps, onComplete, onError }: SystemPr
   const currentStep = steps.find(s => s.status === 'current');
   const errorStep = steps.find(s => s.status === 'error');
   const hasErrors = steps.some(s => s.status === 'error');
-  const allDone = steps.every(s => s.status === 'done');
 
   const completedCount = steps.filter(s => s.status === 'done').length;
   const progressPercent = (completedCount / steps.length) * 100;

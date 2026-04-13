@@ -9,10 +9,12 @@
 :: LICENSE: MIT
 :: ==========================================================
 setlocal enabledelayedexpansion
+:: Get the escape character for colored output
+for /F "delims=" %%A in ('echo prompt $E^| cmd') do set "ESC=%%A"
 
-echo ================================================
+echo %ESC%[34m================================================
 echo AMP Manager - Post Build Script (Require Admin)
-echo ================================================
+echo ================================================%ESC%[0m
 
 :: CONFIGURATION
 :: Put ResourceHacker.exe in project root or update path
@@ -31,11 +33,12 @@ if not defined EXE_FILE (
 )
 
 if not defined EXE_FILE (
-    echo [ERROR] Could not find any *-win_x64.exe in %BUILD_DIR%
+    echo %ESC%[31m[ERROR] Could not find any *-win_x64.exe in %BUILD_DIR%%ESC%[0m
     echo Make sure you ran "neu build" first.
     pause
     exit /b 1
 )
+
 
 set "FULL_EXE=%BUILD_DIR%\%EXE_FILE%"
 
@@ -46,22 +49,24 @@ echo Applying requireAdministrator manifest...
 "%RESOURCE_HACKER%" -open "%FULL_EXE%" -save "%FULL_EXE%" -action addoverwrite -res "%MANIFEST_FILE%" -mask MANIFEST,1,1033 -log console
 
 if %errorlevel% neq 0 (
-    echo [ERROR] Failed to apply manifest. Make sure ResourceHacker.exe is in the project root.
+    echo %ESC%[31m[ERROR] Failed to apply manifest. Make sure ResourceHacker.exe is in the project root.%ESC%[0m
     pause
     exit /b 1
 )
 
 echo.
-echo Success! Admin manifest applied to: %EXE_FILE%
+echo %ESC%[32mSuccess! Admin manifest applied to: %EXE_FILE%%ESC%[0m
 echo Users will now see UAC prompt when launching the app (required for amp-tasks.bat + Docker).
 echo.
 echo You can distribute the file from: %FULL_EXE%
 echo.
 
+
+
 :: Ask user if they want to clean up non-Windows build artifacts
-echo ================================================
+echo %ESC%[34m================================================
 echo Cleanup Option
-echo ================================================
+echo ================================================%ESC%[0m
 echo This will remove Linux, macOS, and ARM Windows build files.
 echo.
 echo [C] Clean now   - Remove non-Windows files

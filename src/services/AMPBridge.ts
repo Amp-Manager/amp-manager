@@ -1,4 +1,5 @@
 import type { AmpResponse, DockerStat, DockerDisk, Domain } from '@/types';
+import { toast } from '@/utils/toast';
 
 /**
  * AMPBridge Service
@@ -69,9 +70,14 @@ export function startKeepalive(intervalMs: number = 30000): void {
   keepaliveInterval = setInterval(async () => {
     try {
       await ampBridge.status();
-      console.log('[Keepalive] Backend responsive');
     } catch (e) {
-      console.warn('[Keepalive] Backend unresponsive:', e);
+      toast.error('Backend unresponsive. Click to retry.', {
+        action: { 
+          label: 'Retry', 
+          onClick: () => window.location.reload() 
+        },
+        duration: Infinity
+      });
     }
   }, intervalMs);
 }

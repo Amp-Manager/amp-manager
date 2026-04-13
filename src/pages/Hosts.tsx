@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { HardDrive, RefreshCw, AlertCircle, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "@/utils/toast";
 import { ampBridge } from "@/services/AMPBridge";

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Activity, Server, Globe, Cpu, Zap, AlertTriangle, Info, RefreshCw } from "lucide-react";
+import { Activity, Server, Globe, Cpu, AlertTriangle, Info, RefreshCw } from "lucide-react";
 import PageLoader from "@/components/layout/PageLoader";
 import { angieStatusService, AngieStats } from "@/services/AngieStatusService";
 import { SiteStatusCard } from "@/components/monitor/SiteStatusCard";

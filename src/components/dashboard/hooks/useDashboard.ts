@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDashboardSettings } from '@/stores/dashboardSettings';
 import { useBatchError } from '@/context/BatchErrorContext';
 import { useSync } from '@/context/SyncContext';
-import { parseWindowsTimestamp } from '@/lib/utils';
 import { configGuardService } from '@/services/ConfigGuardService';
 import { databaseService } from '@/services/DatabaseService';
 import { EnvStatus, DashboardCounts, WorkflowStatsData } from '../types';
@@ -99,12 +98,6 @@ export function useDashboard(user: string | null) {
 
       // Save history and fetch stats
       await configGuardService.captureFactorySettings();
-
-      const angieDate = parseWindowsTimestamp(envData.angie_conf_date);
-      const certDate = parseWindowsTimestamp(envData.cert_file_date);
-      const wwwDate = parseWindowsTimestamp(envData.www_folder_date);
-
-      // TODO: Add env_history to JSON storage if needed
 
       let databases: any[] = [];
       try {
