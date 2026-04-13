@@ -1,8 +1,11 @@
-# AMP Manager
+<h1 align="center">AMP Manager</h1>
 
-Desktop app for local development. Docker-based stack with a click-and-run GUI. No terminal required. 
+<p align="center">Desktop app for local development. Docker-based stack with a click-and-run GUI. No terminal required.</p>
 
----
+<p align="center">
+  <img src="public/icons/4x4.png" width="100%" height="48px" />
+</p>
+
 
 
 <p align="center">
@@ -10,17 +13,62 @@ Desktop app for local development. Docker-based stack with a click-and-run GUI. 
 </p>
 
 
-## Features
+## Prerequisites
 
-AMP Manager provides a unified interface for:
+- Windows 10/11
 
-- Local domain management with automatic SSL certificates
-- Docker container monitoring and control
-- Encrypted credentials and notes storage
-- Visual workflow automation
-- Tunnel services integration (share local projects)
+- Download and install [Docker Desktop](https://www.docker.com/products/docker-desktop/)   
+AMP Manager uses Docker to run backend services.
 
-## Activity Timeline 
+- Download the latest AMP Manager release to your drive e.g. `D:\amp-manager`
+
+## First Run Setup
+
+1. **Start Docker Desktop**   
+ Ensure Docker is running (check system tray icon)
+2. **Initialize containers**  
+  Open a terminal in `D:\amp-manager` and run:
+   ```bash
+   docker compose up -d
+   ```
+3. **Launch AMP Manager**   
+AMP Manager will help you manage your local development environment:
+
+- configure and trust SSL certificates
+- update your Windows hosts file
+- create local development domains
+- start and stop Docker services
+- define workflows using a node‑based UI
+- share a local site using tunneling services
+
+> [!WARNING]
+> AMP Manager requires administrator privileges.
+
+This is necessary to:
+
+- install and trust SSL certificates
+- modify the Windows hosts file
+- manage Docker services that require elevated access
+
+AMP Manager does not collect, transmit, or store any user data.   
+All operations happen locally on your machine.
+
+
+### Creating Your First Domain
+
+1. Open AMP Manager
+2. Click "Add Domain"
+3. Enter domain name (e.g., `mysite`)
+4. Click Create
+
+Your domain is now available at `http://mysite.local` with automatic SSL!
+
+
+<p align="center">
+  <img src="public/icons/4x4.png" width="100%" height="48px" />
+</p>
+
+## Activity Timeline & System Checks
 
 
 <p align="center">
@@ -36,198 +84,68 @@ AMP Manager provides a unified interface for:
 </p>
 
 
-## First Run Setup
+## Tech Stack
 
-1. **Install Docker Desktop** - Download and install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-2. **Install AMP Manager** - Download a release or clone to your drive e.g. `D:\amp-manager\`
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, DaisyUI |
+| Backend | Neutralino.js 6.5, Windows Batch (amp-tasks.bat) |
+| Storage | JSON Files (users/ folder), Web Crypto for encryption |
+| Containers | Docker Compose (Angie, PHP, MariaDB) |
 
-#### Run Docker and Amp Manager
+## Documentation
 
-1. **Start Docker Desktop** - Ensure Docker is running (check system tray icon)
-2. **Initialize containers** - Open a terminal in the AMP Manager folder and run:
-   ```bash
-   docker compose up -d
-   ```
-3. **Launch AMP Manager** - The dashboard will show all systems as "Healthy"
+For more details, see the documentation in the [Wiki](/wiki)
 
 
-> **Note:** Docker must be running whenever you use AMP Manager. The Dashboard's System Checks section displays the current status. You can also use AMP Manager to launch and control Docker.
+| Document | Description |
+|----------|-------------|
+| [Core Concepts](/wiki/01‐Core‐Concepts.md) | How AMP works |
+| [For Developers](/wiki/02‐For-Developers.md) | Step-by-step for devs |
+| [For Students](/wiki/02‐For-Students.md) | Quick start for beginners |
+| [Architecture](/wiki/03‐Architecture.md) | System design |
+| [State Management](/wiki/03‐State-Management.md) | storage systems |
+| [Amp Tasks Reference](/wiki/04-Amp-Tasks-Reference.md) | Batch commands |
+| [API Reference](/wiki/05-API-Reference.md) | AMPBridge API |
+| [Component Reference](/wiki/06-Component-Reference.md) | UI components |
+| [User Interface](/wiki/07-User-Interface.md) | UI tech stack |
+| [Security](/wiki/08-Security.md) | Security model |
+| [Workflows](/wiki/09-Workflows-Deployment.md) | Deployment guides |
+| [Tunneling](/wiki/10-Local-Tunneling.md) | Tunnel services |
+| [Contributing](/wiki/11-Contributing.md) | Developer guide |
+| [Troubleshooting](/wiki/12-Troubleshooting.md) | Common issues |
+| [Glossary](/wiki/13-Glossary.md) | Terms explained |
 
----
 
-## Bridge Architecture Summary: UI ↔ Neutralino.js ↔ amp-tasks.bat**
+## Key Concepts
 
-### **1. Bridge Overview**
+### Domains
 
-The AMP Desktop app uses a **3-layer architecture**:
+Local domains with automatic SSL. Each domain gets:
+- Auto-created folder in `www/`
+- SSL certificate via mkcert
+- Angie configuration
+- Hosts file entry
 
-```
-┌─────────────────┐
-│   React UI      │ (Frontend - TypeScript/React)
-└────────┬────────┘
-         │ calls window.AMP.* APIs
-         ▼
-┌─────────────────┐
-│  Neutralino.js  │ (Native Bridge)
-└────────┬────────┘
-         │ executes .bat commands via os.execCommand
-         ▼
-┌─────────────────┐
-│ amp-tasks.bat   │ (Backend Logic - Windows Batch)
-└─────────────────┘
-```
+### Containers
 
----
+Docker containers managed by AMP:
+- **Angie** - Web server
+- **PHP** - PHP runtime
+- **MariaDB** - Database
 
-### **2. Layer Details**
+### Encryption
 
-#### **🎨 Frontend (React UI)**
-- **Location:** `src/pages/*.tsx`, `src/components/**/*.tsx`
-- **API Access:** Via `window.AMP.*` global object
-- **Type Definitions:** 
-  - [`src/types/amp.d.ts`](d:\_github_gigamaster\amp-desktop\src\types\amp.d.ts) - Complete API types
-  - [`src/types/neutralino.d.ts`](d:\_github_gigamaster\amp-desktop\src\types\neutralino.d.ts) - Alternative API types
-  - [`src/types/docker.ts`](d:\_github_gigamaster\amp-desktop\src\types\docker.ts) - Docker-specific types
-
-**Example Usage:**
-```typescript
-// From Dashboard.tsx
-const data = await window.AMP.envCheck();
-
-// From Domains.tsx
-await window.AMP.createDomain('mysite.local');
-await window.AMP.fs.writeTextFile(configPath, content);
-await window.AMP.angie.testConfig();
-```
+Sensitive data (credentials, notes, settings, workflows, site configs) is encrypted using AES-256-GCM with keys derived from your password.
 
 ---
 
-#### **🌉 Bridge Layer**
-- **Location:** [`main.js`](./js/main.js)
-- **Purpose:** Exposes `window.AMP` API to React components
-- **Key Features:**
-  - **Task Whitelist:** `AMP_TASKS` object defines allowed batch tasks
-  - **Generic Backend Caller:** `amp(task, args)` function
-  - **JSON Parsing:** Auto-extracts JSON from batch output
-  - **Error Handling:** Returns structured error responses
-  - **Helper APIs:** `fs`, `angie`, `docker`, `workflow` namespaces
+## Support
 
-**Key Functions:**
-```javascript
-// Generic backend caller
-async function amp(task, args = "") {
-    const batPath = `${NL_PATH}\\amp-tasks.bat`;
-    const fullCommand = `"${batPath}" ${task} ${args}`;
-    const result = await Neutralino.os.execCommand(fullCommand);
-    // ... JSON parsing logic
-}
-
-// Exposed API
-window.AMP = {
-    version: () => amp("version"),
-    createDomain: (name) => amp("new_domain", name),
-    dockerUp: () => amp("docker_up"),
-    fs: { /* filesystem helpers */ },
-    angie: { /* angie helpers */ },
-    docker: { /* docker metrics */ },
-    workflow: { /* git, sftp, webhook */ }
-};
-```
+Issues: [GitHub Issues](https://github.com/amp-manager/amp-manager/issues)
 
 ---
 
-#### **⚙️ Backend (amp-tasks.bat)**
-- **Location:** [`amp-tasks.bat`](./amp-tasks.bat)
-- **Features:**
-  - **Auto-Elevation:** Requests admin rights via UAC
-  - **Single Instance:** Lock file prevents multiple instances
-  - **JSON Output:** All responses are JSON-formatted
-  - **Task Categories:**
+## License
 
-| Category | Tasks |
-|----------|-------|
-| **Environment** | `env_status`, `runtime_status` |
-| **Domains** | `scan_domains`, `list_domains`, `new_domain`, `remove_domain`, `generate_config` |
-| **Certificates** | `ca_status`, `ca_reset`, `ca_uninstall` |
-| **Docker/Angie** | `docker_up`, `docker_stop`, `docker_restart`, `restart_angie` |
-| **Workflow** | `workflow_action`, `workflow_git`, `workflow_sftp`, `workflow_webhook` |
-| **System** | `version` |
-
-**Batch Output Example:**
-```batch
-:NEW_DOMAIN
-echo {"status":"ok","domain":"!DOMAIN!","folder":"!TARGET_DIR!","config":"!CONF_FILE!"}
-```
-
----
-
-### **3. Data Flow Example: Creating a Domain**
-
-```
-1. User clicks "Add Domain" in UI
-   ↓
-2. Domains.tsx calls:
-   await window.AMP.createDomain('mysite.local')
-   ↓
-3. neutralino-reference.js executes:
-   "D:\path\to\amp-tasks.bat" new_domain mysite.local
-   ↓
-4. amp-tasks.bat:
-   - Adds entry to C:\Windows\System32\drivers\etc\hosts
-   - Creates folder in www\mysite.local
-   - Generates SSL cert using mkcert.exe
-   - Creates Angie config in config\angie-sites\
-   - Updates docker-compose.override.yml
-   - Restarts Angie container
-   - Returns JSON response
-   ↓
-5. React UI receives response and updates state
-```
-
----
-
-### **4. Mock Data & Placeholders**
-
-NOTE: This might be remmoved on stable version.
-
-**Mock Locations:**
-1. **`src/main.tsx`:** Fallback mock when `!window.Neutralino`
-   - Mock `envCheck()`, `listDomains()`, `runtimeStatus()`
-   - Mock `workflow.*` functions with delays
-   
-2. **`src/lib/mockService.ts`:** Standalone mock service (needs verification)
-
-3. **Development Fallbacks:** Components check `if (window.AMP)` before calling APIs
-
----
-
-### **5. Key Integration Points**
-
-| Feature | UI Component | Bridge Function | Batch Task |
-|---------|-------------|-----------------|------------|
-| Domain List | `Domains.tsx` | `window.AMP.listDomains()` | `list_domains` |
-| Create Domain | `CreateSiteModal.tsx` | `window.AMP.createDomain()` | `new_domain` |
-| Delete Domain | `Domains.tsx` | `window.AMP.removeDomain()` | `remove_domain` |
-| SSL Certs | `Certificates.tsx` | `window.AMP.caStatus()` | `ca_status` |
-| Docker Stats | `DockerStats.tsx` | `window.AMP.docker.stats()` | Direct Docker CLI |
-| Config Editor | `Domains.tsx` | `window.AMP.fs.*` | Neutralino FS API |
-| Workflows | `Workflow.tsx` | `window.AMP.workflow.*` | `workflow_*` |
-
----
-
-### **6. Security & Safety Features**
-
-✅ **UAC Elevation:** Batch file auto-elevates to admin  
-✅ **Single Instance:** Prevents concurrent executions  
-✅ **Task Whitelist:** Only predefined tasks can be called  
-✅ **JSON Validation:** Auto-extracts and validates JSON responses  
-✅ **Protected Domains:** `angie.local` cannot be deleted  
-✅ **AMP-Managed Tracking:** Only removes domains managed by AMP (via `# AMPMANAGER` comment in hosts)
-
----
-
-This bridge architecture provides a clean separation between the React UI and system-level operations, with Neutralino.js serving as the secure middleware that exposes native capabilities through a well-defined TypeScript API.
-
----
-
-For the more details check the docs.
+AMP Manager is released under [MIT License](/LICENSE)
