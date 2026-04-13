@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Code, Save, Loader2 } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
 import { loadSettingsJSON, saveSettingsJSON } from '@/lib/db';
 import { toast } from '@/utils/toast';
 import { useAuth } from '@/context/AuthContext';

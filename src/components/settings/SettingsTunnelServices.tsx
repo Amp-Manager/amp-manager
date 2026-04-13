@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Save, Globe, Square, Key, AlertCircle } from 'lucide-react';
+import { Loader2, Save, Globe, Square, Key } from 'lucide-react';
 import { loadSettingsJSON, saveSettingsJSON, loadTunnelsJSON, saveTunnelsJSON } from '@/lib/db';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/utils/toast';

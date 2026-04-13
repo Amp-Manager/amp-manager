@@ -3,7 +3,6 @@ import { Activity, Server, Globe, Cpu, AlertTriangle, Info, RefreshCw } from "lu
 import PageLoader from "@/components/layout/PageLoader";
 import { angieStatusService, AngieStats } from "@/services/AngieStatusService";
 import { SiteStatusCard } from "@/components/monitor/SiteStatusCard";
-import { toast } from "@/utils/toast";
 
 export default function Monitor() {
   const [stats, setStats] = useState<AngieStats | null>(null);

@@ -68,7 +68,7 @@ export function useDashboard(user: string | null) {
         return;
       }
 
-      const [data, domainsRes, caRes] = await Promise.all([
+      const [data, , caRes] = await Promise.all([
         ampBridge.envCheck(),
         ampBridge.listDomains(),
         ampBridge.caStatus()

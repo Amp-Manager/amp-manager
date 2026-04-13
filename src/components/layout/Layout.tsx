@@ -17,7 +17,6 @@ function LayoutContent() {
   const { isSynced, setIsSynced, forceSyncOnStartup } = useSync();
   const { steps, performSync } = useProjectSync();
   const [isPreloaderOpen, setIsPreloaderOpen] = useState(false);
-  const [syncError, setSyncError] = useState<string | null>(null);
   const syncInitialized = useRef(false);
   const [open, setOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);

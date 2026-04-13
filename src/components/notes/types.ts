@@ -1,5 +1,3 @@
-import { Tag } from "@/types";
-
 export interface Note {
   id: string;
   title: string;

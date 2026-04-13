@@ -252,7 +252,7 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
 
     try {
       while (currentNode) {
-        const edge = edges.find(e => e.source === currentNode?.id);
+        const edge = edges.find(e => e.source === currentNode.id);
         if (!edge) break;
 
         const nextNode = nodes.find(n => n.id === edge.target);
