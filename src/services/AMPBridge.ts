@@ -1,5 +1,4 @@
 import type { AmpResponse, DockerStat, DockerDisk, Domain } from '@/types';
-import { toast } from '@/utils/toast';
 
 /**
  * AMPBridge Service
@@ -62,23 +61,23 @@ export async function execWithRetry<T>(
 /**
  * Start heartbeat keepalive to prevent Windows from suspending the app.
  * Sends periodic lightweight IPC calls to keep backend responsive.
+ * Fails silently - serverOffline event handles actual disconnects.
  */
 let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
+let keepaliveCount = 0;
 
 export function startKeepalive(intervalMs: number = 30000): void {
   if (keepaliveInterval) return;
 
+  console.log(`[AMP] Keepalive starting with ${intervalMs}ms interval`);
+
   keepaliveInterval = setInterval(async () => {
+    keepaliveCount++;
     try {
       await ampBridge.status();
     } catch (e) {
-      toast.error('Backend unresponsive. Click to retry.', {
-        action: { 
-          label: 'Retry', 
-          onClick: () => window.location.reload() 
-        },
-        duration: Infinity
-      });
+      console.warn(`[AMP] Keepalive ping #${keepaliveCount} failed:`, e);
+      // Fail silently - serverOffline event will handle actual disconnects
     }
   }, intervalMs);
 }

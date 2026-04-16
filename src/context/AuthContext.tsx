@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useCallback } from
 import { deriveKey, generateSalt, encryptData, decryptData, bufferToHex, hexToBuffer, encryptWithKey } from '../lib/crypto';
 import { dataStorage } from '../lib/storage';
 import { ampBridge } from '../services/AMPBridge';
-import { loadCredentialsJSON, saveCredentialsJSON, loadUserJSON, saveUserJSON, setCurrentUser, setEncryptionKey } from '../lib/db';
+import { loadCredentialsJSON, saveCredentialsJSON, loadUserJSON, saveUserJSON, setCurrentUser } from '../lib/db';
 
 interface AuthContextType {
   user: string | null;
@@ -145,16 +145,30 @@ export function useAuth() {
 async function ensureSSHKeyExists(username: string, key: CryptoKey) {
   try {
     const allCreds = await loadCredentialsJSON(username, key);
-    const existingKey = allCreds.find(c => c.id === 'ssh_amp_manager');
+    const credsArray = Array.isArray(allCreds) ? allCreds : [];
+    const existingKey = credsArray.find(c => c.id === 'ssh_amp_manager');
     
-    if (existingKey) return;
+    if (existingKey) {
+      console.log('[AMP] ensureSSHKeyExists: SSH key already exists');
+      return;
+    }
+    console.log('[AMP] ensureSSHKeyExists: No existing SSH key found');
 
-    if (!ampBridge.isAvailable()) return;
+    if (!ampBridge.isAvailable()) {
+      console.warn('[AMP] ensureSSHKeyExists: Backend not available, skipping SSH key generation');
+      return;
+    }
+    console.log('[AMP] ensureSSHKeyExists: Backend available, generating SSH key...');
 
     const res = await ampBridge.sshKeyGenerate(username);
-    if (res.status !== 'ok') return;
+    console.log('[AMP] ensureSSHKeyExists: sshKeyGenerate result:', res);
+    if (res.status !== 'ok') {
+      console.error('[AMP] ensureSSHKeyExists: SSH key generation failed:', res);
+      return;
+    }
 
     const pubKeyResult = await ampBridge.sshKeyStatus();
+    console.log('[AMP] ensureSSHKeyExists: sshKeyStatus result:', pubKeyResult);
     
     const keyInfo = JSON.stringify({
       publicKey: pubKeyResult.public_key,
@@ -177,9 +191,10 @@ async function ensureSSHKeyExists(username: string, key: CryptoKey) {
       updated_at: Date.now()
     };
     
-    allCreds.push(newCred);
-    await saveCredentialsJSON(username, allCreds, key);
-  } catch {
-    // Ignore SSH key errors
+    credsArray.push(newCred);
+    await saveCredentialsJSON(username, credsArray, key);
+    console.log('[AMP] ensureSSHKeyExists: SSH key saved successfully');
+  } catch (e) {
+    console.error('[AMP] ensureSSHKeyExists: Error during SSH key generation:', e);
   }
 }

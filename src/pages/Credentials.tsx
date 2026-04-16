@@ -75,18 +75,29 @@ export default function Credentials() {
   }, [credentials, encryptionKey]);
 
   const loadTags = async () => {
-    const t = await loadTagsJSON();
-    setAllTags(t);
+    try {
+      const t = await loadTagsJSON();
+      setAllTags(Array.isArray(t) ? t : []);
+    } catch (e) {
+      console.error('[AMP] Failed to load tags:', e);
+      setAllTags([]);
+    }
   };
 
   const loadCredentials = async () => {
     if (!user) return;
-    const creds = await loadCredentialsJSON(user, encryptionKey || undefined);
-    const normalized = creds.map(c => ({
-      ...c,
-      tags: Array.isArray(c.tags) ? c.tags : (typeof (c.tags as any) === 'string' ? (c.tags as any).split(',').map((t: string) => t.trim()).filter(Boolean) : [])
-    }));
-    setCredentials(normalized);
+    try {
+      const creds = await loadCredentialsJSON(user, encryptionKey || undefined);
+      const credsArray = Array.isArray(creds) ? creds : [];
+      const normalized = credsArray.map(c => ({
+        ...c,
+        tags: Array.isArray(c.tags) ? c.tags : (typeof (c.tags as any) === 'string' ? (c.tags as any).split(',').map((t: string) => t.trim()).filter(Boolean) : [])
+      }));
+      setCredentials(normalized);
+    } catch (e) {
+      console.error('[AMP] Failed to load credentials:', e);
+      setCredentials([]);
+    }
   };
 
   const handleSave = async () => {
@@ -312,7 +323,7 @@ export default function Credentials() {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        {credentials.filter(c => c.type !== 'ssh_key').map((cred) => (
+        {(credentials || []).filter(c => c.type !== 'ssh_key').map((cred) => (
           <div key={cred.id} className="card bg-base-100 shadow border border-base-300">
             <div className="card-body p-4">
 
@@ -339,7 +350,7 @@ export default function Credentials() {
                     {cred.type === 'ssh' ? 'SSH' : cred.type === 'password' ? 'PASS' : 'TOKEN'}
                   </span>
                  
-                  {cred.tags?.map((tagId: string) => {
+                  {(Array.isArray(cred.tags) ? cred.tags : []).map((tagId: string) => {
                     const tagDef = allTags.find(t => t.id === tagId);
                     const tagName = tagDef ? tagDef.name : (tagId.startsWith('tag_') ? 'Loading...' : tagId);
                     return (

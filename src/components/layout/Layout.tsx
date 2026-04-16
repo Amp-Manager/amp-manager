@@ -216,7 +216,6 @@ function LayoutContent() {
   }, [setIsSynced]);
 
   const handlePreloaderError = useCallback((error: string) => {
-    setSyncError(error);
     setIsPreloaderOpen(false);
     setIsSynced(true); // Allow user to continue even if sync failed
   }, [setIsSynced]);

@@ -2,18 +2,21 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { startKeepalive } from './services/AMPBridge';
-import { toast } from '@/utils/toast';
 import './index.css';
 
-if (typeof Neutralino !== 'undefined') {
-  Neutralino.events.on('serverOffline', () => {
-    toast.error('Connection lost. Click to retry.', {
-      action: { 
-        label: 'Retry', 
-        onClick: () => window.location.reload() 
-      },
-      duration: Infinity
-    });
+console.log('[AMP] Application starting...');
+
+let isReconnecting = false;
+
+if (typeof window !== 'undefined' && window.Neutralino?.events) {
+  console.log('[AMP] Neutralino events available, setting up serverOffline handler');
+  
+  window.Neutralino.events.on('serverOffline', () => {
+    console.error('[AMP] serverOffline event fired - backend became unresponsive');
+    if (!isReconnecting) {
+      isReconnecting = true;
+      window.location.href = '/';
+    }
   });
 }
 
@@ -23,4 +26,5 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
+console.log('[AMP] Starting keepalive with 30s interval');
 startKeepalive(30000);
