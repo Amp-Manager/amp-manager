@@ -3,6 +3,7 @@ type ToastType = 'success' | 'error' | 'info' | 'warning';
 // Sound settings (not persisted, defaults to enabled)
 let soundEnabled = true;
 let volume = 0.5;
+let toastTypesEnabled = { success: true, error: true, info: true, warning: true };
 
 // Audio context singleton
 let audioContext: AudioContext | null = null;
@@ -72,6 +73,7 @@ function playWarningSound(ctx: AudioContext, startTime: number, gainValue: numbe
 
 export function playToastSound(type: ToastType): void {
   if (!soundEnabled) return;
+  if (!toastTypesEnabled[type]) return;
 
   try {
     const ctx = getAudioContext();
@@ -106,6 +108,10 @@ export function playToastSound(type: ToastType): void {
 
 export function setToastSoundEnabled(enabled: boolean): void {
   soundEnabled = enabled;
+}
+
+export function setToastTypesEnabled(types: typeof toastTypesEnabled): void {
+  toastTypesEnabled = types;
 }
 
 export function isToastSoundEnabled(): boolean {

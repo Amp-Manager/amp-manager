@@ -8,7 +8,8 @@ import {
 } from '@/utils/toastSettings';
 import { 
   setToastSoundEnabled, 
-  setToastVolume 
+  setToastVolume,
+  setToastTypesEnabled 
 } from '@/utils/toastSound';
 
 interface ToastSettingsContextType {
@@ -38,6 +39,7 @@ export function ToastSettingsProvider({ children }: { children: ReactNode }) {
 
         setToastSoundEnabled(settings.soundEnabled);
         setToastVolume(settings.volume);
+        setToastTypesEnabled(settings.types);
       } catch (err) {
         // Silently fail - will use defaults
       } finally {
@@ -60,6 +62,7 @@ export function ToastSettingsProvider({ children }: { children: ReactNode }) {
 
       setToastSoundEnabled(newSettings.soundEnabled);
       setToastVolume(newSettings.volume);
+      setToastTypesEnabled(newSettings.types);
 
       saveToastSettings(user, newSettings).catch(() => {
         // Silently fail - settings applied but not persisted
@@ -76,6 +79,7 @@ export function ToastSettingsProvider({ children }: { children: ReactNode }) {
     setToastSettings(defaults);
     setToastSoundEnabled(defaults.soundEnabled);
     setToastVolume(defaults.volume);
+    setToastTypesEnabled(defaults.types);
 
     try {
       await saveToastSettings(user, defaults);

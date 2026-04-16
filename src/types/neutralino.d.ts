@@ -60,10 +60,17 @@ interface NeutralinoOS {
   execCommand: (command: string, options?: { cwd?: string }) => Promise<{ pid: number; stdout: string; stderr: string; exitCode: number }>;
 }
 
+interface NeutralinoEvents {
+  on: (event: string, handler: () => void) => void;
+  off: (event: string, handler: () => void) => void;
+  dispatch: (event: string, data?: any) => void;
+}
+
 interface Neutralino {
   window: NeutralinoWindow;
   app: NeutralinoApp;
   os: NeutralinoOS;
+  events: NeutralinoEvents;
 }
 
 declare global {
