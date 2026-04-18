@@ -2,7 +2,8 @@ import React, { createContext, useContext, useState, useMemo, useCallback } from
 import { deriveKey, generateSalt, encryptData, decryptData, bufferToHex, hexToBuffer, encryptWithKey } from '../lib/crypto';
 import { dataStorage } from '../lib/storage';
 import { ampBridge } from '../services/AMPBridge';
-import { loadCredentialsJSON, saveCredentialsJSON, loadUserJSON, saveUserJSON, setCurrentUser } from '../lib/db';
+/* import { loadCredentialsJSON, saveCredentialsJSON, loadUserJSON, saveUserJSON, setCurrentUser } from '../lib/db'; */ /* TODO verify setEncryptionKey was added and process is broken */
+import { loadCredentialsJSON, saveCredentialsJSON, loadUserJSON, saveUserJSON, setCurrentUser, setEncryptionKey as setDbEncryptionKey } from '../lib/db';
 
 interface AuthContextType {
   user: string | null;
@@ -52,9 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(username);
       setEncryptionKey(key);
       setCurrentUser(username); // Set global currentUser for db functions
+      setDbEncryptionKey(key); // Set global encryptionKey for db functions
       
       await ensureSSHKeyExists(username, key);
-      await dataStorage.save('config.json', { lastUser: username });
+      const existingConfig = await dataStorage.load('config.json') || {};
+      await dataStorage.save('config.json', { ...existingConfig, lastUser: username });
     } catch (error) {
       throw error;
     }
@@ -84,9 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(username);
       setEncryptionKey(key);
       setCurrentUser(username); // Set global currentUser for db functions
+      setDbEncryptionKey(key); // Set global encryptionKey for db functions
       
       await ensureSSHKeyExists(username, key);
-      await dataStorage.save('config.json', { lastUser: username });
+      const existingConfig = await dataStorage.load('config.json') || {};
+      await dataStorage.save('config.json', { ...existingConfig, lastUser: username });
     } catch (error) {
       throw error;
     }
@@ -110,10 +115,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, encryptionKey]);
 
   const logout = useCallback(async () => {
-    await dataStorage.save('config.json', { lastUser: null });
+    const existingConfig = await dataStorage.load('config.json') || {};
+    await dataStorage.save('config.json', { ...existingConfig, lastUser: null });
     setUser(null);
     setEncryptionKey(null);
     setCurrentUser(null); // Clear global currentUser for db functions
+    setDbEncryptionKey(null); // Clear global encryptionKey for db functions
   }, []);
 
   const value = useMemo(() => ({

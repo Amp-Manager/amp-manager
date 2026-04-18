@@ -72,17 +72,17 @@ class BackupService {
   async importData(username: string, data: BackupData, encryptionKey: CryptoKey | null, overwrite: boolean) {
     if (overwrite) {
       await Promise.all([
-        saveSitesJSON([]),
+        saveSitesJSON(username, []),
         saveNotesJSON(username, [], encryptionKey),
         saveCredentialsJSON(username, [], encryptionKey),
-        saveWorkflowsJSON([]),
+        saveWorkflowsJSON(username, []),
         saveTagsJSON([])
       ]);
     }
 
     if (data.sites?.length) {
       const existing = await loadSitesJSON();
-      await saveSitesJSON([...existing, ...data.sites]);
+      await saveSitesJSON(username, [...existing, ...data.sites]);
     }
 
     if (data.tags?.length) {
@@ -92,7 +92,7 @@ class BackupService {
 
     if (data.workflows?.length) {
       const existing = await loadWorkflowsJSON();
-      await saveWorkflowsJSON([...existing, ...data.workflows]);
+      await saveWorkflowsJSON(username, [...existing, ...data.workflows]);
     }
 
     if (data.notes?.length) {

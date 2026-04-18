@@ -128,7 +128,7 @@ export function useNotes() {
       } else {
         allNotes.push(noteData);
       }
-      await saveNotesJSON(user, allNotes, encryptionKey || undefined);
+      await saveNotesJSON(user, allNotes, formData.is_encrypted ? encryptionKey : undefined);
       
       await logActivityJSON(user, editingNote ? 'update' : 'create', 'note', noteData.id, noteData.title);
       await loadNotes();

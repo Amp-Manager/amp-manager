@@ -57,7 +57,26 @@ interface NeutralinoWindow {
 }
 
 interface NeutralinoOS {
-  execCommand: (command: string, options?: { cwd?: string }) => Promise<{ pid: number; stdout: string; stderr: string; exitCode: number }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  execCommand: (command: string, options?: any) => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  open: (url: string, options?: any) => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  spawnProcess: (command: string, options?: any) => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  updateSpawnedProcess: (id: number, event: string, data?: any) => Promise<void>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getSpawnedProcesses: () => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getEnv: (key: string) => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getEnvs: () => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  showOpenDialog: (title?: string, options?: any) => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  showFolderDialog: (title?: string, options?: any) => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  showSaveDialog: (title?: string, options?: any) => Promise<any>;
 }
 
 interface NeutralinoEvents {

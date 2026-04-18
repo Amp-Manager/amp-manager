@@ -1,5 +1,5 @@
 import React from 'react';
-import { toast as sonnerToast, ExternalToast } from 'sonner';
+import { toast as sonnerToast, ExternalToast, ToastT } from 'sonner';
 import { playToastSound } from './toastSound';
 
 // Re-export sonner types

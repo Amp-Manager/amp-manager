@@ -100,11 +100,11 @@ export function useProjectSync(): UseProjectSyncReturn {
       
       // Get domains from AMP Manager (config + SSL)
       const domainsResult = await ampBridge.listDomains();
-      const ampDomains = domainsResult?.domains || [];
+      const ampDomains = Array.isArray(domainsResult?.domains) ? domainsResult.domains : [];
       
       // Get domains from Windows HOSTS
       const hostsResult = await ampBridge.scanDomains();
-      const hostEntries = hostsResult?.domains || [];
+      const hostEntries = Array.isArray(hostsResult?.domains) ? hostsResult.domains : [];
       const hostsSet = new Set<string>(
         hostEntries.map((d: any) => typeof d === 'string' ? d : d.name || d.domain)
       );
@@ -118,7 +118,7 @@ export function useProjectSync(): UseProjectSyncReturn {
         // Directory might not exist
       }
       const wwwSet = new Set(
-        wwwFolders
+        (Array.isArray(wwwFolders) ? wwwFolders : [])
           .filter(f => f.name && !f.name.includes('.'))
           .map(f => f.name)
       );
@@ -127,7 +127,8 @@ export function useProjectSync(): UseProjectSyncReturn {
 
       // Get existing sites for preserving created_at timestamps
       const existingSites = await loadSitesJSON();
-      const sitesMap = new Map(existingSites.map(s => [s.id, s]));
+      const existingSitesArray = Array.isArray(existingSites) ? existingSites : [];
+      const sitesMap = new Map(existingSitesArray.map(s => [s.id, s]));
 
       // Build domain statuses from backend response (ssl_valid now comes from backend)
       const domainStatuses: DomainStatus[] = ampDomains.map((d: { domain: string; config: boolean; ssl: boolean; ssl_valid: boolean }) => {
@@ -155,14 +156,16 @@ export function useProjectSync(): UseProjectSyncReturn {
       setStepStatus('sync', 'current');
 
       const existingStatuses = await loadDomainStatusJSON();
+      const existingStatusesArray = Array.isArray(existingStatuses) ? existingStatuses : [];
       const newDomains = new Set(domainStatuses.map(s => s.domain));
 
-      // Update domain statuses
-      const allStatuses = [...existingStatuses.filter(s => newDomains.has(s.domain)), ...domainStatuses];
-      await saveDomainStatusJSON(allStatuses);
+      // Update domain statuses (remove old entries for scanned domains, add fresh data)
+      const existingToKeep = existingStatusesArray.filter(s => !newDomains.has(s.domain));
+      const allStatuses = [...existingToKeep, ...domainStatuses];
+      await saveDomainStatusJSON(user, allStatuses);
 
       // Update sites
-      const allSites = [...existingSites];
+      const allSites = [...existingSitesArray];
       for (const status of domainStatuses) {
         const existingSite = sitesMap.get(status.domain);
         const siteIndex = allSites.findIndex(s => s.id === status.domain);
@@ -182,12 +185,8 @@ export function useProjectSync(): UseProjectSyncReturn {
         }
       }
 
-      // Remove orphaned entries
-      const filteredStatuses = existingStatuses.filter(s => newDomains.has(s.domain));
-      await saveDomainStatusJSON(filteredStatuses);
-
-      const filteredSites = existingSites.filter(s => newDomains.has(s.id));
-      await saveSitesJSON(filteredSites);
+      // Save the updated sites (includes existing + new domains)
+      await saveSitesJSON(user, allSites);
 
       // Update last sync timestamp
       const settings = await loadSettingsJSON(user);

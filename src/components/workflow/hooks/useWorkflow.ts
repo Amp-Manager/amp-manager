@@ -252,7 +252,7 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
 
     try {
       while (currentNode) {
-        const edge = edges.find(e => e.source === currentNode.id);
+        const edge = edges.find(e => e.source === currentNode?.id); /* todo verify this currentnode? */
         if (!edge) break;
 
         const nextNode = nodes.find(n => n.id === edge.target);
@@ -474,7 +474,7 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
     } else {
       allWorkflows.push(workflow);
     }
-    await saveWorkflowsJSON(allWorkflows);
+    await saveWorkflowsJSON(user, allWorkflows);
     
     await logActivityJSON(user, currentWorkflowId ? 'update' : 'create', 'workflow', workflow.id, workflow.title);
     toast.success("Workflow saved successfully");
@@ -491,7 +491,7 @@ export function useWorkflow(user: string | null, encryptionKey?: CryptoKey | nul
 
     const allWorkflows = await loadWorkflowsJSON();
     const filtered = allWorkflows.filter(w => w.id !== currentWorkflowId);
-    await saveWorkflowsJSON(filtered);
+    await saveWorkflowsJSON(user, filtered);
     
     if (workflowToDelete) {
       await logActivityJSON(user, 'delete', 'workflow', currentWorkflowId, workflowToDelete.title);

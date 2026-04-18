@@ -1504,3 +1504,84 @@ set /p DOCKER_DF=<"%TEMP%\docker_df.json"
 echo {"status":"ok","info":!DOCKER_INFO!,"df":!DOCKER_DF!,"running_count":!RUNNING_COUNT!}
 
 endlocal & exit /b 0
+
+
+:: ==========================================================
+:: WATCHDOG - Zombie Recovery Monitor
+:: Monitors the app and restarts if becomes unresponsive
+:: ==========================================================
+
+:WATCH
+echo [AMP] Watchdog starting...
+echo [AMP] Monitoring for zombie app recovery...
+
+set "CHECK_INTERVAL=30"
+set "MAX_FAILURES=2"
+set "FAILURE_COUNT=0"
+
+:WATCH_LOOP
+timeout /t %CHECK_INTERVAL% /nobreak >nul
+
+:: Read config.json to get instance info
+set "CONFIG_FILE=%PROJECT_ROOT%\config.json"
+if not exist "%CONFIG_FILE%" (
+    echo [AMP] No config.json found
+    goto :WATCH_LOOP
+)
+
+:: Parse PID from config (simple approach)
+for /f "tokens=2 delims=:, tokens=1" %%a in ('findstr /i "pid" "%CONFIG_FILE%"') do set "STORED_PID=%%~a"
+for /f "tokens=2 delims=:, tokens=1" %%a in ('findstr /i "port" "%CONFIG_FILE%"') do set "STORED_PORT=%%~a"
+
+:: Check 1: Is our stored PID still running?
+if defined STORED_PID (
+    tasklist /fi "PID eq %STORED_PID%" 2>nul | findstr /i "%STORED_PID%" >nul
+    if errorlevel 1 (
+        echo [AMP] Stored PID %STORED_PID% not found - possible zombie
+        set /a FAILURE_COUNT+=1
+    ) else (
+        echo [AMP] PID %STORED_PID% is running
+        set "FAILURE_COUNT=0"
+    )
+)
+
+:: Check 2: Is port responding? (only if port defined)
+if defined STORED_PORT (
+    netstat -ano | findstr ":%STORED_PORT% " >nul
+    if errorlevel 1 (
+        echo [AMP] Port %STORED_PORT% not responding
+        set /a FAILURE_COUNT+=1
+    ) else (
+        echo [AMP] Port %STORED_PORT% is responding
+    )
+)
+
+:: Force restart if too many failures
+if %FAILURE_COUNT% geq %MAX_FAILURES% (
+    echo [AMP] FAILURE_COUNT=%FAILURE_COUNT% - Force restarting app...
+    
+    :: Kill by PID if defined
+    if defined STORED_PID (
+        taskkill /f /pid %STORED_PID% 2>nul
+    )
+    
+    :: Kill by name as fallback
+    taskkill /f /im "amp-manager-win_x64.exe" 2>nul
+    
+    :: Wait a moment
+    timeout /t 2 /nobreak >nul
+    
+    :: Restart the app
+    start "" "%PROJECT_ROOT%\amp-manager-win_x64.exe"
+    
+    :: Reset failure count
+    set "FAILURE_COUNT=0"
+    
+    :: Wait for app to start
+    timeout /t 5 /nobreak >nul
+    
+    :: Update config with new PID (approximate)
+    echo [AMP] App restarted - monitoring continues
+)
+
+goto :WATCH_LOOP

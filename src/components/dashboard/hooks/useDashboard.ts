@@ -68,7 +68,7 @@ export function useDashboard(user: string | null) {
         return;
       }
 
-      const [data, , caRes] = await Promise.all([
+      const [data, domainsRes, caRes] = await Promise.all([
         ampBridge.envCheck(),
         ampBridge.listDomains(),
         ampBridge.caStatus()
@@ -117,12 +117,16 @@ export function useDashboard(user: string | null) {
         loadTagsJSON()
       ]);
       
-      const saved = workflows.length;
-      const success = notes.filter(n => n.tags?.includes('deploy') && !n.tags?.includes('fail')).length;
-      const failure = notes.filter(n => n.tags?.includes('deploy') && n.tags?.includes('fail')).length;
+      const notesArr = Array.isArray(notes) ? notes : [];
+      const workflowsArr = Array.isArray(workflows) ? workflows : [];
+      const credsArr = Array.isArray(credentials) ? credentials : [];
+      
+      const saved = workflowsArr.length;
+      const success = notesArr.filter(n => n.tags?.includes('deploy') && !n.tags?.includes('fail')).length;
+      const failure = notesArr.filter(n => n.tags?.includes('deploy') && n.tags?.includes('fail')).length;
       
       setWorkflowStats({ saved, success, failure });
-      setRecentWorkflows(workflows.sort((a, b) => b.updated_at - a.updated_at).slice(0, 5));
+      setRecentWorkflows(workflowsArr.sort((a, b) => b.updated_at - a.updated_at).slice(0, 5));
       
       // Last 7 days stats
       const last7DaysMap = new Map<string, { saved: number, success: number, failure: number }>();
@@ -162,8 +166,6 @@ export function useDashboard(user: string | null) {
       setLast7Days(Array.from(last7DaysMap.entries()).map(([date, stats]) => ({ date, ...stats })));
       
       const domainArr = Array.isArray(domainStatuses) ? domainStatuses : [];
-      const notesArr = Array.isArray(notes) ? notes : [];
-      const credsArr = Array.isArray(credentials) ? credentials : [];
       const wflowsArr = Array.isArray(workflows) ? workflows : [];
       const dbsArr = Array.isArray(databases) ? databases : [];
 

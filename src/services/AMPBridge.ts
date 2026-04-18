@@ -187,15 +187,66 @@ class AMPBridge {
     }>('sshKeyGenerate', username); 
   }
 
-  // OS
+// OS
   public os = {
-    open: (url: string) => this.call<void>('os.open', url),
-    execCommand: (command: string) => this.call<{ exitCode: number; stdOut: string; stdErr: string }>('os.execCommand', command),
-    spawnProcess: (command: string, cwd?: string) => this.call<{ id: number; pid: number }>('os.spawnProcess', command, cwd),
-    updateSpawnedProcess: (id: number, action: string, data?: string) => 
-      this.call<{ status: string }>('os.updateSpawnedProcess', id, action, data),
-    showSaveDialog: (title: string, options?: any) => this.call<string>('os.showSaveDialog', title, options),
-    showOpenDialog: (title: string, options?: any) => this.call<string[]>('os.showOpenDialog', title, options),
+    execCommand: (command: string, options?: { cwd?: string; stdIn?: string; background?: boolean }) => {
+      if (typeof window !== 'undefined' && window.Neutralino?.os) {
+        return window.Neutralino.os.execCommand(command, options);
+      }
+      return Promise.resolve({ pid: 0, stdout: '', stderr: '', exitCode: 0 });
+    },
+    open: (url: string) => {
+      if (typeof window !== 'undefined' && window.Neutralino?.os) {
+        return window.Neutralino.os.open(url);
+      }
+    },
+    spawnProcess: (command: string, options?: { cwd?: string; envs?: Record<string, string> }) => {
+      if (typeof window !== 'undefined' && window.Neutralino?.os) {
+        return window.Neutralino.os.spawnProcess(command, options);
+      }
+      return Promise.resolve({ pid: 0, id: 0 });
+    },
+    updateSpawnedProcess: (id: number, event: string, data?: any) => {
+      if (typeof window !== 'undefined' && window.Neutralino?.os) {
+        return window.Neutralino.os.updateSpawnedProcess(id, event, data);
+      }
+    },
+    getSpawnedProcesses: () => {
+      if (typeof window !== 'undefined' && window.Neutralino?.os) {
+        return window.Neutralino.os.getSpawnedProcesses();
+      }
+      return Promise.resolve([]);
+    },
+    getEnv: (key: string) => {
+      if (typeof window !== 'undefined' && window.Neutralino?.os) {
+        return window.Neutralino.os.getEnv(key);
+      }
+      return Promise.resolve('');
+    },
+    getEnvs: () => {
+      if (typeof window !== 'undefined' && window.Neutralino?.os) {
+        return window.Neutralino.os.getEnvs();
+      }
+      return Promise.resolve({});
+    },
+    showOpenDialog: (title?: string, options?: any) => {
+      if (typeof window !== 'undefined' && window.Neutralino?.os) {
+        return window.Neutralino.os.showOpenDialog(title, options);
+      }
+      return Promise.resolve([]);
+    },
+    showFolderDialog: (title?: string, options?: any) => {
+      if (typeof window !== 'undefined' && window.Neutralino?.os) {
+        return window.Neutralino.os.showFolderDialog(title, options);
+      }
+      return Promise.resolve('');
+    },
+    showSaveDialog: (title?: string, options?: any) => {
+      if (typeof window !== 'undefined' && window.Neutralino?.os) {
+        return window.Neutralino.os.showSaveDialog(title, options);
+      }
+      return Promise.resolve('');
+    }
   };
 
   // Filesystem
@@ -280,6 +331,27 @@ class AMPBridge {
   public app = {
     exit: () => window.Neutralino?.app?.exit(),
   };
+
+  /**
+   * Spawn watchdog process for automatic zombie recovery.
+   * Uses cmd.exe /c start to run detached (survives parent death).
+   */
+  public spawnWatchdog(): void {
+    if (this.isDevMode()) {
+      console.log('[AMP] Watchdog skipped in dev mode');
+      return;
+    }
+
+    try {
+      const batPath = 'amp-tasks.bat';
+      const cmd = `cmd.exe /c start "" /B "${batPath}" watch`;
+      
+      this.os.execCommand(cmd, { cwd: '.' });
+      console.log('[AMP] Watchdog spawned');
+    } catch (e) {
+      console.error('[AMP] Failed to spawn watchdog:', e);
+    }
+  }
 }
 
 export const ampBridge = AMPBridge.getInstance();
