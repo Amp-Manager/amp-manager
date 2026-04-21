@@ -96,5 +96,8 @@ declare global {
   interface Window {
     AMP: AmpApi;
     Neutralino: Neutralino;
+    NL_PATH?: string;
+    NL_PID?: string;
+    NL_PORT?: number;
   }
 }

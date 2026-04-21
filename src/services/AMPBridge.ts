@@ -20,14 +20,14 @@ export async function execWithTimeout(
     }, timeoutMs);
 
     ampBridge.os.execCommand(command)
-      .then((result) => {
-        clearTimeout(timeout);
-        resolve(result);
-      })
-      .catch((err) => {
-        clearTimeout(timeout);
-        reject(err);
-      });
+    .then((result: { exitCode: number; stdOut: string; stdErr: string }) => {
+      clearTimeout(timeout);
+      resolve(result);
+    })
+    .catch((err: Error) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
   });
 }
 
@@ -157,6 +157,7 @@ class AMPBridge {
   public createDomain(name: string, options?: { scaffold?: boolean }) { 
     return this.call<AmpResponse>('createDomain', name, options); 
   }
+
   public removeDomain(name: string) { return this.call<AmpResponse>('removeDomain', name); }
   public generateConfig(name: string) { return this.call<AmpResponse>('generateConfig', name); }
 
@@ -179,6 +180,7 @@ class AMPBridge {
       key_path?: string;
     }>('sshKeyStatus'); 
   }
+
   public sshKeyGenerate(username: string) { 
     return this.call<AmpResponse & { 
       key_path?: string; 
@@ -332,26 +334,60 @@ class AMPBridge {
     exit: () => window.Neutralino?.app?.exit(),
   };
 
+
   /**
    * Spawn watchdog process for automatic zombie recovery.
    * Uses cmd.exe /c start to run detached (survives parent death).
    */
-  public spawnWatchdog(): void {
-    if (this.isDevMode()) {
-      console.log('[AMP] Watchdog skipped in dev mode');
-      return;
-    }
-
+  public async spawnWatchdog(): Promise<void> {
+    if (this.isDevMode()) return;
     try {
-      const batPath = 'amp-tasks.bat';
-      const cmd = `cmd.exe /c start "" /B "${batPath}" watch`;
-      
-      this.os.execCommand(cmd, { cwd: '.' });
+      await window.Neutralino.os.execCommand({
+        command: 'start /b cmd.exe /c "title AMP_WATCHDOG && amp-tasks.bat watch"',
+        background: true
+      });
       console.log('[AMP] Watchdog spawned');
     } catch (e) {
       console.error('[AMP] Failed to spawn watchdog:', e);
     }
   }
+
+  /**
+   * Forcefully terminates any remaining AMP watchdog processes.
+   * Prevents the "infinite re-launch" loop when the UI is closed.
+   */
+  public async killStaleWatchdogs(): Promise<void> {
+    if (this.isDevMode()) return;
+
+    try {
+      /**
+       * We use PowerShell because it handles window title filtering much better than taskkill.
+       * -WindowStyle Hidden: Prevents a terminal window from flashing.
+       * -ErrorAction SilentlyContinue: Prevents crashes if no processes are found.
+       */
+      const cleanupCommand = [
+        'powershell',
+        '-WindowStyle Hidden',
+        '-Command "',
+        'Get-Process cmd -ErrorAction SilentlyContinue | ',
+        "Where-Object { $_.MainWindowTitle -like '*AMP*' } | ",
+        'Stop-Process -Force',
+        '"'
+      ].join(' ');
+
+      await window.Neutralino.os.execCommand({
+        command: cleanupCommand,
+        background: true
+      });
+
+      console.log('[AMP] Cleanup: Stale watchdog processes terminated.');
+    } catch (e) {
+      // We log as a warning because if no watchdogs exist, 
+      // the command might return a non-zero exit code.
+      console.warn('[AMP] Cleanup: Watchdog termination skipped or failed.', e);
+    }
+  }
+
 }
 
 export const ampBridge = AMPBridge.getInstance();

@@ -41,9 +41,8 @@ set "URL=https://angie.local/"
 :: TASK DISPATCHER
 if "%~1"=="" goto :HELP
 
-:: Environment & Runtime
-if /i "%~1"=="env_status"        goto :ENV_STATUS
-if /i "%~1"=="runtime_status"    goto :RUNTIME_STATUS
+:: Watchdog
+if /i "%~1"=="watch"                goto :WATCH
 
 :: Domain management
 if /i "%~1"=="scan_domains"      goto :SCAN_DOMAINS
@@ -60,50 +59,50 @@ if /i "%~1"=="runtime_status"    goto :RUNTIME_STATUS
 if /i "%~1"=="php_extensions"    goto :PHP_EXTENSIONS
 
 :: Certificate Authority
-if /i "%~1"=="ca_status"         goto :CA_STATUS
-if /i "%~1"=="ca_reset"          goto :CA_RESET
-if /i "%~1"=="ca_uninstall"      goto :CA_UNINSTALL
-if /i "%~1"=="regenerate_ssl"    goto :REGENERATE_SSL
-if /i "%~1"=="regenerate_all_ssl" goto :REGENERATE_ALL_SSL
+if /i "%~1"=="ca_status"            goto :CA_STATUS
+if /i "%~1"=="ca_reset"             goto :CA_RESET
+if /i "%~1"=="ca_uninstall"         goto :CA_UNINSTALL
+if /i "%~1"=="regenerate_ssl"       goto :REGENERATE_SSL
+if /i "%~1"=="regenerate_all_ssl"   goto :REGENERATE_ALL_SSL
 
 :: SSH Key Management
-if /i "%~1"=="ssh_key_status"    goto :SSH_KEY_STATUS
-if /i "%~1"=="ssh_key_generate"  goto :SSH_KEY_GENERATE
+if /i "%~1"=="ssh_key_status"       goto :SSH_KEY_STATUS
+if /i "%~1"=="ssh_key_generate"     goto :SSH_KEY_GENERATE
 
 :: Docker / Angie
-if /i "%~1"=="docker_up"         goto :DOCKER_UP
-if /i "%~1"=="docker_stop"       goto :DOCKER_STOP
-if /i "%~1"=="docker_restart"    goto :DOCKER_RESTART
-if /i "%~1"=="restart_angie"     goto :RESTART_ANGIE
-if /i "%~1"=="restart_runtime"   goto :RESTART_RUNTIME
-if /i "%~1"=="docker_env_metrics" goto :DOCKER_SUMMARY
+if /i "%~1"=="docker_up"            goto :DOCKER_UP
+if /i "%~1"=="docker_stop"          goto :DOCKER_STOP
+if /i "%~1"=="docker_restart"       goto :DOCKER_RESTART
+if /i "%~1"=="restart_angie"        goto :RESTART_ANGIE
+if /i "%~1"=="restart_runtime"      goto :RESTART_RUNTIME
+if /i "%~1"=="docker_env_metrics"   goto :DOCKER_SUMMARY
 if /i "%~1"=="docker_desktop_launch" goto :DOCKER_DESKTOP_LAUNCH
-if /i "%~1"=="db_query"           goto :DB_QUERY
+if /i "%~1"=="db_query"             goto :DB_QUERY
 
 :: Workflow 
-if /i "%~1"=="workflow_action"    goto :WORKFLOW_ACTION
-if /i "%~1"=="workflow_git"       goto :WORKFLOW_GIT
-if /i "%~1"=="workflow_sftp"      goto :WORKFLOW_SFTP
-if /i "%~1"=="workflow_webhook"   goto :WORKFLOW_WEBHOOK
+if /i "%~1"=="workflow_action"      goto :WORKFLOW_ACTION
+if /i "%~1"=="workflow_git"         goto :WORKFLOW_GIT
+if /i "%~1"=="workflow_sftp"        goto :WORKFLOW_SFTP
+if /i "%~1"=="workflow_webhook"     goto :WORKFLOW_WEBHOOK
 
 :: Maintenance
-if /i "%~1"=="clear_cache"       goto :CLEAR_CACHE
-if /i "%~1"=="clear_logs"        goto :CLEAR_LOGS
+if /i "%~1"=="clear_cache"          goto :CLEAR_CACHE
+if /i "%~1"=="clear_logs"           goto :CLEAR_LOGS
 
 :: Version
-if /i "%~1"=="version" goto :VERSION
+if /i "%~1"=="version"              goto :VERSION
 
 goto :HELP
 
 :: Tasks supported
 :HELP
-echo {"status":"error","message":"Invalid or missing task","supported":["status","env_status","runtime_status","scan_domains","list_domains","new_domain","remove_domain","generate_config","ca_status","ca_reset","ca_uninstall","regenerate_ssl","regenerate_all_ssl","ssh_key_status","ssh_key_generate","docker_desktop_launch","docker_up","docker_stop","restart_angie","restart_runtime","docker_restart","docker_env_metrics","clear_cache","clear_logs","version"]}
+echo {"status":"error","message":"Invalid or missing task","supported":["watch","status","env_status","runtime_status","scan_domains","list_domains","new_domain","remove_domain","generate_config","ca_status","ca_reset","ca_uninstall","regenerate_ssl","regenerate_all_ssl","ssh_key_status","ssh_key_generate","docker_desktop_launch","docker_up","docker_stop","restart_angie","restart_runtime","docker_restart","docker_env_metrics","clear_cache","clear_logs","version"]}
 exit /b 1
 
 
 :VERSION
 setlocal EnableDelayedExpansion
-echo {"status":"ok","version":"1.0.0","build":"2026-03-07","engine":"amp-manager-batch"}
+echo {"status":"ok","version":"1.0.0","build":"2026-03-07","engine":"amp-manager"}
 endlocal
 exit /b 0
 
@@ -346,6 +345,7 @@ if "!SFTP_ERR!"=="0" (
 
 endlocal & exit /b !SFTP_ERR!
 
+
 :WORKFLOW_WEBHOOK
 setlocal EnableDelayedExpansion
 set "WF_URL=%~2"
@@ -371,7 +371,6 @@ if "!ERR!"=="0" (
     echo {"status":"error","message":"Webhook failed","details":!RESULT!}
 )
 endlocal & exit /b !ERR!
-
 
 
 :SCAN_DOMAINS
@@ -581,8 +580,8 @@ endlocal
 exit /b 0
 
 
+:: REMOVE AMP-MANAGED DOMAIN
 :REMOVE_DOMAIN
-:: SAFELY REMOVE AMP-MANAGED DOMAIN
 setlocal EnableDelayedExpansion
 
 :: Normalize domain
@@ -719,8 +718,8 @@ endlocal
 exit /b 0
 
 
+:: GENERATE CONFIG + SSL FOR A DOMAIN
 :GENERATE_CONFIG
-:: REGENERATE SSL + CONFIG FOR A DOMAIN
 setlocal EnableDelayedExpansion
 set "DOMAIN=%~2"
 if "%DOMAIN%"=="" echo {"status":"error","message":"No domain provided"} & exit /b 1
@@ -746,9 +745,9 @@ copy /y "!TEMPLATE!" "!CONF_FILE!" >nul
 powershell -NoProfile -Command ^
     "(Get-Content '!CONF_FILE!') -replace '{{DOMAIN}}','%DOMAIN%' | Set-Content '!CONF_FILE!'"
 
-
+:: GENERATE SSL
 :GEN_SSL
-:: Regenerate SSL
+
 "%MKCERT%" -cert-file "!CERT_FILE!" -key-file "!KEY_FILE!" "%DOMAIN%" >nul 2>&1
 if errorlevel 1 (
     del "!CERT_FILE!" >nul 2>&1
@@ -782,7 +781,6 @@ exit /b 0
 
 
 :ADD_EXTRA_HOST
-:: setlocal prevent variables to leak into NEW_DOMAIN or other subroutines
 setlocal EnableDelayedExpansion
 
 set "DOMAIN=%~1"
@@ -1076,9 +1074,7 @@ endlocal
 exit /b 0
 
 
-
 :: DOCKER ACTIONS
-
 :DOCKER_UP
 setlocal EnableDelayedExpansion
 
@@ -1224,8 +1220,7 @@ if "!ERR!"=="0" (
 endlocal & exit /b !ERR!
 
 
-:: Database
-
+:: DATABASE
 :DB_QUERY
 setlocal EnableDelayedExpansion
 set "QUERY=%~2"
@@ -1309,8 +1304,7 @@ echo {"status":"error","message":"Invalid format. Use LIST, deleteDbName, or dbn
 endlocal & exit /b 1
 
 
-:: Environment status
-
+:: ENVIRONMENT STATUS
 :ENV_STATUS
 setlocal EnableDelayedExpansion
 
@@ -1506,82 +1500,79 @@ echo {"status":"ok","info":!DOCKER_INFO!,"df":!DOCKER_DF!,"running_count":!RUNNI
 endlocal & exit /b 0
 
 
-:: ==========================================================
 :: WATCHDOG - Zombie Recovery Monitor
 :: Monitors the app and restarts if becomes unresponsive
-:: ==========================================================
-
 :WATCH
-echo [AMP] Watchdog starting...
-echo [AMP] Monitoring for zombie app recovery...
+setlocal EnableDelayedExpansion
 
-set "CHECK_INTERVAL=30"
-set "MAX_FAILURES=2"
+set "PROJECT_ROOT=%~dp0"
+set "CONFIG_FILE=%PROJECT_ROOT%config.json"
+set "EXE_NAME=amp-manager-win_x64.exe"
+set "LOCK_FILE=%temp%\amp_watchdog.lock"
+set "CHECK_INTERVAL=20"
+set "MAX_FAILURES=3"
 set "FAILURE_COUNT=0"
+
+:: If lock FILE exists, exit (app should have deleted it)
+if exist "%LOCK_FILE%" (
+    echo [AMP] Lock file exists - exiting
+    endlocal & exit /b 0
+)
+
+:: ACQUIRE LOCK: Create empty lock file
+type nul > "%LOCK_FILE%"
+if errorlevel 1 (
+    echo [AMP] Failed to create lock - exiting
+    endlocal & exit /b 0
+)
+
+echo [AMP] Watchdog started
 
 :WATCH_LOOP
 timeout /t %CHECK_INTERVAL% /nobreak >nul
 
-:: Read config.json to get instance info
-set "CONFIG_FILE=%PROJECT_ROOT%\config.json"
-if not exist "%CONFIG_FILE%" (
-    echo [AMP] No config.json found
+:: Check exitFlag FIRST
+findstr /i "\"exitFlag\":true" "%CONFIG_FILE%" >nul 2>nul
+if not errorlevel 1 (
+    goto :CLEANUP
+)
+
+:: Get app PID from config
+set "APP_PID="
+for /f "tokens=2 delims=:" %%a in ('findstr /i "\"pid\"" "%CONFIG_FILE%"') do (
+    set "RAW=%%~a"
+    set "RAW=!RAW: =!"
+    set "RAW=!RAW:,=!"
+    set "RAW=!RAW:"=!"
+    set "APP_PID=!RAW!"
+)
+
+if not defined APP_PID goto :WATCH_LOOP
+
+:: Check if app PID is alive
+tasklist /fi "PID eq !APP_PID!" 2>nul | findstr /i "!APP_PID!" >nul
+if not errorlevel 1 (
+    set "FAILURE_COUNT=0"
     goto :WATCH_LOOP
 )
 
-:: Parse PID from config (simple approach)
-for /f "tokens=2 delims=:, tokens=1" %%a in ('findstr /i "pid" "%CONFIG_FILE%"') do set "STORED_PID=%%~a"
-for /f "tokens=2 delims=:, tokens=1" %%a in ('findstr /i "port" "%CONFIG_FILE%"') do set "STORED_PORT=%%~a"
+:: App dead
+echo [AMP] App PID !APP_PID! NOT FOUND
+set /a FAILURE_COUNT+=1
 
-:: Check 1: Is our stored PID still running?
-if defined STORED_PID (
-    tasklist /fi "PID eq %STORED_PID%" 2>nul | findstr /i "%STORED_PID%" >nul
+if %FAILURE_COUNT% GEQ %MAX_FAILURES% (
+    tasklist /fi "imagename eq %EXE_NAME%" 2>nul | findstr /i "%EXE_NAME%" >nul
     if errorlevel 1 (
-        echo [AMP] Stored PID %STORED_PID% not found - possible zombie
-        set /a FAILURE_COUNT+=1
-    ) else (
-        echo [AMP] PID %STORED_PID% is running
-        set "FAILURE_COUNT=0"
+        start "" "%PROJECT_ROOT%%EXE_NAME%"
+        timeout /t 15 /nobreak >nul
     )
-)
-
-:: Check 2: Is port responding? (only if port defined)
-if defined STORED_PORT (
-    netstat -ano | findstr ":%STORED_PORT% " >nul
-    if errorlevel 1 (
-        echo [AMP] Port %STORED_PORT% not responding
-        set /a FAILURE_COUNT+=1
-    ) else (
-        echo [AMP] Port %STORED_PORT% is responding
-    )
-)
-
-:: Force restart if too many failures
-if %FAILURE_COUNT% geq %MAX_FAILURES% (
-    echo [AMP] FAILURE_COUNT=%FAILURE_COUNT% - Force restarting app...
-    
-    :: Kill by PID if defined
-    if defined STORED_PID (
-        taskkill /f /pid %STORED_PID% 2>nul
-    )
-    
-    :: Kill by name as fallback
-    taskkill /f /im "amp-manager-win_x64.exe" 2>nul
-    
-    :: Wait a moment
-    timeout /t 2 /nobreak >nul
-    
-    :: Restart the app
-    start "" "%PROJECT_ROOT%\amp-manager-win_x64.exe"
-    
-    :: Reset failure count
     set "FAILURE_COUNT=0"
-    
-    :: Wait for app to start
-    timeout /t 5 /nobreak >nul
-    
-    :: Update config with new PID (approximate)
-    echo [AMP] App restarted - monitoring continues
 )
 
 goto :WATCH_LOOP
+
+:CLEANUP
+:: DELETE LOCK FILE
+del "%LOCK_FILE%" 2>nul
+echo [AMP] Watchdog stopped
+endlocal & exit /b 0

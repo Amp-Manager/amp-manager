@@ -33,7 +33,7 @@ export const dataStorage = {
       let jsonData: string;
       const isValidKey = options.key && typeof options.key === 'object' && options.key.type === 'secret';
       if (options.encrypt && isValidKey) {
-        const encrypted = await encryptWithKey(JSON.stringify(data), options.key);
+        const encrypted = await encryptWithKey(JSON.stringify(data), options.key!);
         jsonData = JSON.stringify({
           encrypted: true,
           data: encrypted.ciphertext,
@@ -52,7 +52,7 @@ export const dataStorage = {
     let jsonData: string;
     const isValidKey = options.key && typeof options.key === 'object' && options.key.type === 'secret';
     if (options.encrypt && isValidKey) {
-      const encrypted = await encryptWithKey(JSON.stringify(data), options.key);
+      const encrypted = await encryptWithKey(JSON.stringify(data), options.key!);
       jsonData = JSON.stringify({
         encrypted: true,
         data: encrypted.ciphertext,
@@ -75,7 +75,7 @@ export const dataStorage = {
         const parsed = JSON.parse(stored);
         const isValidKey = options.key && typeof options.key === 'object' && options.key.type === 'secret';
         if (parsed.encrypted && isValidKey) {
-          const decrypted = await decryptWithKey(parsed.iv, parsed.data, options.key);
+          const decrypted = await decryptWithKey(parsed.iv, parsed.data, options.key!);
           return JSON.parse(decrypted) as T;
         }
         return parsed as T;
@@ -91,7 +91,7 @@ export const dataStorage = {
       
       const isValidKey = options.key && typeof options.key === 'object' && options.key.type === 'secret';
       if (parsed.encrypted && isValidKey) {
-        const decrypted = await decryptWithKey(parsed.iv, parsed.data, options.key);
+        const decrypted = await decryptWithKey(parsed.iv, parsed.data, options.key!);
         return JSON.parse(decrypted) as T;
       }
       return parsed as T;
@@ -130,34 +130,45 @@ export const dataStorage = {
     } catch { return false; }
   },
 
+  // SAVE method
   async save(key: string, data: unknown, options: StorageOptions = {}): Promise<void> {
     if (ampBridge.isDevMode()) {
       const lsKey = getLsKey(key);
-      const jsonData = JSON.stringify(data, null, 2);
-      localStorage.setItem(lsKey, jsonData);
+      localStorage.setItem(lsKey, JSON.stringify(data));
       return;
     }
 
-    const filePath = await ampBridge.fs.getAbsolutePath(key);
-    const jsonData = JSON.stringify(data, null, 2);
-    await ampBridge.fs.writeTextFile(filePath, jsonData);
+    try {
+      const env = await ampBridge.envCheck();
+      const nlPath = env.project_root;
+      const fileName = key.endsWith('.json') ? key : `${key}.json`;
+      const filePath = `${nlPath}\\${fileName}`.replace(/\//g, '\\');
+      const jsonData = JSON.stringify(data, null, 2);
+      await ampBridge.fs.writeTextFile(filePath, jsonData);
+    } catch (e) {
+      console.error('[AMP] storage.save failed:', e);
+      throw e;
+    }
   },
 
+  // LOAD method
   async load<T>(key: string, options: StorageOptions = {}): Promise<T | null> {
     if (ampBridge.isDevMode()) {
       const lsKey = getLsKey(key);
       const stored = localStorage.getItem(lsKey);
-      if (!stored) return null;
-      try {
-        return JSON.parse(stored) as T;
-      } catch { return null; }
+      return stored ? JSON.parse(stored) as T : null;
     }
 
     try {
-      const filePath = await ampBridge.fs.getAbsolutePath(key);
+      const env = await ampBridge.envCheck();
+      const nlPath = env.project_root;
+      const fileName = key.endsWith('.json') ? key : `${key}.json`;
+      const filePath = `${nlPath}\\${fileName}`.replace(/\//g, '\\');
       const result = await ampBridge.fs.readTextFile(filePath);
       return JSON.parse(result) as T;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   },
 
   async remove(key: string): Promise<void> {

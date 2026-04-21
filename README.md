@@ -136,28 +136,26 @@ Sensitive data (credentials, notes, settings, workflows, site configs) is encryp
 
 ## Documentation
 
-For more details, see the documentation in the [Wiki](../../wiki)
+For more details, see AMP Manager [documentation](https://amp-manager.github.io/docs/)
 
 
 | Document | Description |
 |----------|-------------|
-| [Core Concepts](../..//wiki/01‐Core‐Concepts) | How AMP works |
-| [For Developers](../..//wiki/02‐For-Developers) | Step-by-step for devs |
-| [For Students](../../wiki/02‐For-Students) | Quick start for beginners |
-| [Architecture](../../wiki/03‐Architecture) | System design |
-| [State Management](../../wiki/03‐State-Management) | storage systems |
-| [Amp Tasks Reference](../../wiki/04‐Amp-Tasks-Reference) | Batch commands |
-| [API Reference](../../wiki/05‐API-Reference) | AMPBridge API |
-| [Component Reference](../../wiki/06‐Component-Reference) | UI components |
-| [User Interface](../../wiki/07-User-Interface) | UI tech stack |
-| [Security](../../wiki/08-Security) | Security model |
-| [Workflows](../../wiki/09-Workflows-Deployment) | Deployment guides |
-| [Tunneling](../../wiki/10-Local-Tunneling) | Tunnel services |
-| [Contributing](../../wiki/11‐Contributing) | Developer guide |
-| [Troubleshooting](../../wiki/12‐Troubleshooting) | Common issues |
-| [Glossary](../../wiki/13‐Glossary) | Terms explained |
-
-
+| [Introduction](https://amp-manager.github.io/docs/introduction) | Quick Start |
+| [Core Concepts](https://amp-manager.github.io/docs/core-concepts) | How AMP works |
+| [For Users](https://amp-manager.github.io/docs/for-users) | User Guide |
+| [For Developers](https://amp-manager.github.io/docs/for-developers) | For developers |
+| [Architecture](https://amp-manager.github.io/docs/architecture) | System design |
+| [Amp Tasks Reference](https://amp-manager.github.io/docs/amp-tasks-reference) | Batch commands |
+| [API Reference](https://amp-manager.github.io/docs/api-reference) | AMPBridge API |
+| [Component Reference](https://amp-manager.github.io/docs/component-reference) | UI components |
+| [User Interface](https://amp-manager.github.io/docs/user-interface) | UI tech stack |
+| [Security](https://amp-manager.github.io/docs/security) | Security model |
+| [Workflows](https://amp-manager.github.io/docs/workflows-deployment) | Deployment guides |
+| [Tunneling](https://amp-manager.github.io/docs/local-tunneling) | Tunnel services |
+| [Contributing](https://amp-manager.github.io/docs/contributing) | Developer guide |
+| [Troubleshooting](https://amp-manager.github.io/docs/troubleshooting) | Common issues |
+| [Glossary](https://amp-manager.github.io/docs/glossary) | Terms explained |
 
 
 ---

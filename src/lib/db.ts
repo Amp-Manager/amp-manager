@@ -1,6 +1,3 @@
-// lib/db.ts
-// KISS: Single source of truth - ignores extra params from old code
-
 import { dataStorage } from './storage';
 import { ampBridge } from '../services/AMPBridge';
 
@@ -33,11 +30,57 @@ function ensureUser(): string {
 // =====================
 // GLOBAL CONFIG
 // =====================
-export async function loadConfigJSON(): Promise<any> { return await dataStorage.load<any>('config.json'); }
-export async function saveConfigJSON(config: any): Promise<void> { await dataStorage.save('config.json', config); }
 
-export async function updateInstanceInfo(instanceId: string, pid: string, port: number, launchedAt: number): Promise<void> {
-  const config = await loadConfigJSON() || {};
+export interface AppConfig {
+  lastUser: string | null;
+  instanceId?: string;
+  processName?: string;
+  pid?: number;
+  port?: number;
+  launchedAt?: number;
+  // Exit tracking for watchdog coordination
+  exitFlag?: boolean;
+  exitTime?: number | null;
+}
+
+// Update loadConfigJSON to ensure exitFlag defaults to false
+export async function loadConfigJSON(): Promise<AppConfig | null> {
+  try {
+    // Use load() method
+    const config = await dataStorage.load<AppConfig>('config');
+    if (!config) return null;
+    
+    // defaults
+    if (config.exitFlag === undefined) config.exitFlag = false;
+    if (config.exitTime === undefined) config.exitTime = null;
+    
+    return config;
+  } catch (e) {
+    console.error('[AMP] Failed to load config:', e);
+    return null;
+  }
+}
+
+// Update saveConfigJSON to preserve exitFlag handling
+export async function saveConfigJSON(config: AppConfig): Promise<void> {
+  try {
+    // safe values
+    const safeConfig = {
+      ...config,
+      exitFlag: config.exitFlag ?? false,
+      exitTime: config.exitTime ?? null
+    };
+    
+    // Use save() method
+    await dataStorage.save('config', safeConfig);
+  } catch (e) {
+    console.error('[AMP] Failed to save config:', e);
+    throw e;
+  }
+}
+
+export async function updateInstanceInfo(instanceId: string, pid: number, port: number, launchedAt: number): Promise<void> {
+  const config = await loadConfigJSON() ?? { lastUser: null };
   // Preserve lastUser if exists
   const lastUser = config.lastUser || null;
   config.lastUser = lastUser;
@@ -50,7 +93,7 @@ export async function updateInstanceInfo(instanceId: string, pid: string, port: 
 }
 
 export async function clearInstanceInfo(): Promise<void> {
-  const config = await loadConfigJSON() || {};
+  const config = await loadConfigJSON() ?? { lastUser: null };
   delete config.instanceId;
   delete config.processName;
   delete config.pid;
@@ -61,8 +104,9 @@ export async function clearInstanceInfo(): Promise<void> {
 }
 
 // =====================
-// USER AUTH (explicit username)
+// USER AUTH (username)
 // =====================
+
 export async function loadUserJSON(username: string): Promise<any> {
   return await dataStorage.loadUser<any>(username, 'user.json');
 }
@@ -74,6 +118,7 @@ export async function saveUserJSON(username: string, data: any): Promise<void> {
 // =====================
 // LOAD - Accept ...args, ignore extras
 // =====================
+
 function resolveKey(...args: any[]): CryptoKey | null {
   // Check args for CryptoKey
   for (let i = 0; i < args.length; i++) {
@@ -141,6 +186,7 @@ export async function loadDatabasesCacheJSON(..._args: any[]): Promise<any> { tr
 // =====================
 // SAVE - Accept ...args, ignore extras  
 // =====================
+
 export async function saveSitesJSON(..._args: any[]): Promise<void> { const data = _args[1] || []; await dataStorage.saveUser(ensureUser(), 'sites.json', data); }
 export async function saveTagsJSON(..._args: any[]): Promise<void> { const data = _args[0] || []; await dataStorage.saveUser(ensureUser(), 'tags.json', data); }
 export async function saveNotesJSON(..._args: any[]): Promise<void> { 
@@ -182,8 +228,8 @@ export async function saveDatabasesCacheJSON(..._args: any[]): Promise<void> { c
 // =====================
 // ACTIVITY LOGGING
 // =====================
+
 export async function logActivityJSON(_first?: any, _second?: any, _third?: any, _fourth?: any, _fifth?: any): Promise<void> {
-  // Handle old: logActivityJSON(user, action, type, id, name) and new: logActivityJSON(action, type, id, name)
   let action: any, entity_type: any, entity_id: any, entity_name: any;
   if (typeof _first === 'string' && ['delete', 'create', 'update', 'deploy', 'error'].includes(_first)) {
     action = _first; entity_type = _second; entity_id = _third; entity_name = _fourth;
@@ -199,6 +245,7 @@ export async function logActivityJSON(_first?: any, _second?: any, _third?: any,
 // =====================
 // DELETE
 // =====================
+
 export async function deleteUserData(username: string) {
   // Delete individual files first
   const files = ['user.json', 'settings.json', 'tunnels.json', 'activity_logs.json', 'credentials.json', 'notes.json', 'sites.json', 'tags.json', 'site_configs.json', 'workflows.json', 'domain_status.json', 'databases.json', 'databases_cache.json'];
@@ -215,7 +262,7 @@ export async function deleteUserData(username: string) {
   }
   
   // Update config - merge instead of overwrite
-  const config = await dataStorage.load<any>('config.json') || {};
+  const config = await dataStorage.load<any>('config') || {};
   config.lastUser = null;
-  await dataStorage.save('config.json', config);
+  await dataStorage.save('config', config);
 }

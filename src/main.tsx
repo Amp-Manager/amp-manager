@@ -2,14 +2,19 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { startKeepalive, ampBridge } from './services/AMPBridge';
-import { updateInstanceInfo, loadConfigJSON, setCurrentUser } from './lib/db';
+import { updateInstanceInfo, loadConfigJSON, saveConfigJSON, setCurrentUser } from './lib/db';
 import './index.css';
 
-console.log('[AMP] Application starting...');
 
 async function initializeApp() {
   // Load existing config for lastUser
-  const existingConfig = await loadConfigJSON() || {};
+  const existingConfig = await loadConfigJSON() ?? { lastUser: null };
+  
+  // ALWAYS reset exitFlag on launch (no conditions)
+  existingConfig.exitFlag = false;
+  existingConfig.exitTime = null;
+  await saveConfigJSON(existingConfig);
+  
   const lastUser = existingConfig.lastUser || null;
   
   // Restore current user from last session (if exists)
@@ -21,8 +26,8 @@ async function initializeApp() {
   const instanceId = `amp-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
   
   // Get PID and port from Neutralino globals (available on app startup)
-  const pid = typeof window !== 'undefined' ? ((window as any).NL_PID || '0') : '0';
-  const port = typeof window !== 'undefined' ? ((window as any).NL_PORT || 0) : 0;
+  const pid = typeof window !== 'undefined' ? Number((window as any).NL_PID) || 0 : 0;
+  const port = typeof window !== 'undefined' ? Number((window as any).NL_PORT) || 0 : 0;
   const launchedAt = Date.now();
   
   try {
@@ -32,7 +37,10 @@ async function initializeApp() {
     console.error('[AMP] Failed to save instance info:', e);
   }
   
-  // Spawn watchdog (runs in background, monitors for zombie state)
+  // Kill any stale watchdog from previous session
+  await ampBridge.killStaleWatchdogs();
+  
+  // Spawn watchdog (runs in background, monitors neutralinojs for zombie state)
   ampBridge.spawnWatchdog();
 }
 

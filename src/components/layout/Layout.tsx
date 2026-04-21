@@ -7,7 +7,7 @@ import { SystemPreloader } from "./SystemPreloader";
 import { useAuth } from "@/context/AuthContext";
 import { SyncProvider, useSync } from "@/context/SyncContext";
 import { useProjectSync } from "@/hooks/useProjectSync";
-import { loadSitesJSON, loadTagsJSON, loadNotesJSON, loadCredentialsJSON, loadWorkflowsJSON, loadSettingsJSON } from "@/lib/db";
+import { saveConfigJSON, loadConfigJSON, loadSitesJSON, loadTagsJSON, loadNotesJSON, loadCredentialsJSON, loadWorkflowsJSON, loadSettingsJSON } from "@/lib/db";
 import SearchPalette, { SearchableItem } from "./SearchPalette";
 import { ampBridge } from "@/services/AMPBridge";
 import { toast } from "@/utils/toast";
@@ -242,14 +242,32 @@ function LayoutContent() {
     }
   }, []);
 
-  const handleClose = useCallback(() => {
+  const handleClose = async (): Promise<void> => {
+
+    // Set exitFlag = true
     try {
-      ampBridge.window.close();
+      const config = await loadConfigJSON() ?? { lastUser: null };
+      config.exitFlag = true;
+      config.exitTime = Date.now();
+      await saveConfigJSON(config);
+      await new Promise(resolve => setTimeout(resolve, 300));
     } catch (e) {
-      // Fallback to app exit if window close fails
-      ampBridge.app.exit();
+      console.error('[AMP] ❌ Failed to save exitFlag:', e);
     }
-  }, []);
+
+    // Delete lock FILE (prevents deadlock)
+    try {
+      await window.Neutralino.os.execCommand({
+        command: 'del "%TEMP%\\amp_watchdog.lock" 2>nul',
+        background: false
+      });
+    } catch (e) {
+      console.warn('[AMP] ❌ Lock delete failed:', e);
+    }
+
+    // Exit app
+    await window.Neutralino.app.exit();
+  };
 
   const handleSearchTrigger = useCallback(() => {
     if (!isAuthenticated) return;
