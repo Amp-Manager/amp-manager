@@ -1531,8 +1531,10 @@ echo [AMP] Watchdog started
 :WATCH_LOOP
 timeout /t %CHECK_INTERVAL% /nobreak >nul
 
-:: Check exitFlag FIRST
-findstr /i "\"exitFlag\":true" "%CONFIG_FILE%" >nul 2>nul
+:: Check exitFlag FIRST. Match with space
+findstr /i "\"exitFlag\": true" "%CONFIG_FILE%" >nul 2>nul
+:: Match either (more robust)
+:: findstr /i "\"exitFlag\":" "%CONFIG_FILE%" | findstr /i "true" >nul 2>nul
 if not errorlevel 1 (
     goto :CLEANUP
 )
