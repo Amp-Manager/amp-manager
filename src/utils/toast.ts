@@ -1,9 +1,9 @@
 import React from 'react';
-import { toast as sonnerToast, ExternalToast, ToastT } from 'sonner';
+import { toast as sonnerToast, ExternalToast } from 'sonner';
 import { playToastSound } from './toastSound';
 
 // Re-export sonner types
-export type { ExternalToast, ToastT, ToasterProps } from 'sonner';
+export type { ExternalToast, ToasterProps } from 'sonner';
 export { Toaster } from 'sonner';
 
 // Type for toast data
@@ -116,7 +116,7 @@ export const toast = {
           ? messages.error(err)
           : messages.error;
       },
-    });
+    }, options);
   },
 
   // Dismiss

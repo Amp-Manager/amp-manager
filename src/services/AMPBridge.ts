@@ -195,7 +195,7 @@ class AMPBridge {
       if (typeof window !== 'undefined' && window.Neutralino?.os) {
         return window.Neutralino.os.execCommand(command, options);
       }
-      return Promise.resolve({ pid: 0, stdout: '', stderr: '', exitCode: 0 });
+      return Promise.resolve({ pid: 0, stdOut: '', stdErr: '', exitCode: 0 });
     },
     open: (url: string) => {
       if (typeof window !== 'undefined' && window.Neutralino?.os) {
@@ -342,10 +342,10 @@ class AMPBridge {
   public async spawnWatchdog(): Promise<void> {
     if (this.isDevMode()) return;
     try {
-      await window.Neutralino.os.execCommand({
-        command: 'start /b cmd.exe /c "title AMP_WATCHDOG && amp-tasks.bat watch"',
-        background: true
-      });
+      await window.Neutralino.os.execCommand(
+        'start /b cmd.exe /c "title AMP_WATCHDOG && amp-tasks.bat watch"',
+        { background: true }
+      );
       console.log('[AMP] Watchdog spawned');
     } catch (e) {
       console.error('[AMP] Failed to spawn watchdog:', e);
@@ -375,8 +375,7 @@ class AMPBridge {
         '"'
       ].join(' ');
 
-      await window.Neutralino.os.execCommand({
-        command: cleanupCommand,
+      await window.Neutralino.os.execCommand(cleanupCommand, {
         background: true
       });
 
