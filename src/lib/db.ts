@@ -118,24 +118,6 @@ export async function saveUserJSON(username: string, data: any): Promise<void> {
 // =====================
 // LOAD - Accept ...args, ignore extras
 // =====================
-
-function resolveKey(...args: any[]): CryptoKey | null {
-  // Check args for CryptoKey
-  for (let i = 0; i < args.length; i++) {
-    const passed = args[i];
-    if (!passed) continue;
-    if (passed instanceof CryptoKey) return passed;
-    if (typeof passed === 'object' && (passed as any).type === 'secret') return passed as unknown as CryptoKey;
-  }
-  // Global fallback only if at least one arg was passed (not all undefined)
-  const hasArg = args.some(a => a !== undefined && a !== null && a !== false && a !== '');
-  if (hasArg) {
-    const globalKey = getEncryptionKey();
-    if (globalKey && typeof globalKey === 'object' && (globalKey as any).type === 'secret') return globalKey;
-  }
-  return null;
-}
-
 export async function loadSitesJSON(..._args: any[]): Promise<any[]> { try { return await dataStorage.loadUser<any[]>(ensureUser(), 'sites.json') || []; } catch { return []; } }
 export async function loadTagsJSON(..._args: any[]): Promise<any[]> { try { return await dataStorage.loadUser<any[]>(ensureUser(), 'tags.json') || []; } catch { return []; } }
 export async function loadNotesJSON(..._args: any[]): Promise<any[]> { 
