@@ -93,11 +93,11 @@ export const toast = {
   },
 
   // Promise (plays sound based on result)
-  promise: <ToastData>(
-    promise: Promise<ToastData>,
+  promise: <T>(
+    promise: Promise<T>,
     messages: {
       loading: string | React.ReactNode;
-      success: string | React.ReactNode | ((data: ToastData) => string | React.ReactNode);
+      success: string | React.ReactNode | ((data: T) => string | React.ReactNode);
       error: string | React.ReactNode | ((error: any) => string | React.ReactNode);
     },
     options?: ExternalToast
