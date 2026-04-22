@@ -1,0 +1,57 @@
+name: "Theme report"
+description: "File a theme report here"
+title: "[BUG]: "
+labels: ["bug"]
+assignees: ["gigamaster"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report.
+        Make sure there aren't any open/closed issues for this topic.
+        
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Which component?
+      options:
+      - Charts
+      - Layout
+      - Menu
+      - Modal
+      - Search
+      - Sidebar
+      - Styling
+      - Toast
+      - Window
+      - Workflow node
+      - Other...
+    validations:
+      required: true
+        
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Description of the bug
+      description: Give us a brief description of what happened and what should have happened
+    validations:
+      required: true
+      
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps To Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: additional-information
+    attributes:
+      label: Additional Information
+      description: |
+        Provide any additional information such as theme name and version, error message or scenarios in which the issue occurs to acilitate resolving the issue.
