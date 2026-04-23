@@ -43,9 +43,18 @@ jobs:
       - name: Build UI
         run: npm run build
 
-      - name: Build Neutralino Binary
+      - name: Force Clean Build
+        shell: pwsh
         run: |
+          Write-Host "Nuking stale artifacts..."
+          if (Test-Path "dist") { Remove-Item -Recurse -Force "dist" }
+          if (Test-Path "resources.neu") { Remove-Item -Force "resources.neu" }
+          if (Test-Path "bin") { Remove-Item -Recurse -Force "bin" }
+          
+          Write-Host "Updating Neutralino binary templates..."
           npx neu update
+          
+          Write-Host "Building fresh production bundle..."
           npx neu build
 
       - name: Verify Build Output
