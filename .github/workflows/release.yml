@@ -34,12 +34,20 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Clean Build Artifacts
+        shell: pwsh
+        run: |
+          Write-Host "Cleaning old build artifacts..."
+          if (Test-Path "dist") { Remove-Item -Path "dist" -Recurse -Force -ErrorAction SilentlyContinue }
+          if (Test-Path "resources.neu") { Remove-Item -Path "resources.neu" -Force -ErrorAction SilentlyContinue }
+          Write-Host "Clean complete"
+
       - name: Build UI
         run: npm run build
 
       - name: Build Neutralino Binary
         run: |
-          npx neu update
+          npx neu update --force
           npx neu build
 
       - name: Verify Build Output
