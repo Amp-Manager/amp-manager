@@ -65,42 +65,39 @@ jobs:
             Remove-Item -Recurse -Force
         shell: pwsh
 
-      - name: Apply UAC manifest
-        run: .\post-build.bat
+      - name: Apply UAC + Build Release Tree
+        env:
+          CI: true
         shell: cmd
-        timeout-minutes: 2
+        timeout-minutes: 5
+        run: .\post-build.bat
 
-      - name: Prepare final release package
+      - name: Verify release structure
         run: |
-          # Create clean release folder
-          New-Item -ItemType Directory -Path "dist/release" -Force | Out-Null
-          
-          # Core Neutralino built files
-          Copy-Item "dist/amp-manager/amp-manager-win_x64.exe" -Destination "dist/release/" -Force
-          Copy-Item "dist/amp-manager/resources.neu" -Destination "dist/release/" -Force
-          
-          # Required backend
-          Copy-Item "amp-tasks.bat" -Destination "dist/release/" -Force
-          
-          # Docker files
-          Copy-Item "docker-compose.yml" -Destination "dist/release/" -Force
-          Copy-Item "docker-compose.override.yml" -Destination "dist/release/" -Force
-          Copy-Item ".env" -Destination "dist/release/" -Force
-          
-          # Required folders
-          Copy-Item -Path "angie_cache", "config", "data", "logs", "www" -Destination "dist/release/" -Recurse -Force
-          
-          # Documentation
-          Copy-Item "README.md" -Destination "dist/release/" -Force
-          
-          # Clean up bin/ if present
-          Remove-Item -Path "dist/release/bin" -Recurse -Force -ErrorAction SilentlyContinue
-        shell: pwsh
+          $required = @(
+            "amp-manager/amp-manager-win_x64.exe",
+            "amp-manager/resources.neu",
+            "amp-manager/amp-tasks.bat",
+            "amp-manager/docker-compose.yml",
+            "amp-manager/docker-compose.override.yml",
+            "amp-manager/.env",
+            "amp-manager/LICENSE",
+            "amp-manager/config",
+            "amp-manager/www"
+          )
+          foreach ($item in $required) {
+            if (-not (Test-Path $item)) {
+              Write-Host "Missing: $item"
+              exit 1
+            }
+          }
+          Write-Host "Release structure verified"
 
       - name: Create release ZIP
         run: |
-          Compress-Archive -Path "dist/release/*" -DestinationPath "AMP-Manager-${{ env.VERSION }}-win-x64.zip" -Force
-        shell: pwsh
+          $zipName = "AMP-Manager-${{ env.VERSION }}-win-x64.zip"
+          Compress-Archive -Path "amp-manager\*" -DestinationPath $zipName -Force
+          Write-Host "Created: $zipName"
 
       - name: Upload ZIP as artifact
         uses: actions/upload-artifact@v4

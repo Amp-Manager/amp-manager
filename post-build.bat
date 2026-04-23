@@ -1,69 +1,48 @@
 @echo off
 :: ==========================================================
-:: AMP-MANAGER
-:: Post-build.bat
-:: A simple batch script to add manifestAdmin to executable
-:: Author: Nuno Luciano
-:: Date: 2026-02-25
-:: Version: 1.01.0
-:: LICENSE: MIT
+:: AMP-MANAGER - Post Build Script
+:: Applies UAC manifest + builds release tree
+::
+:: Usage:
+::   Local:   post-build.bat
+::   CI:     set CI=true && post-build.bat
 :: ==========================================================
-setlocal enabledelayedexpansion
-:: Get the escape character for colored output
+setlocal EnableDelayedExpansion
+
+:: Get escape character for colored output
 for /F "delims=" %%A in ('echo prompt $E^| cmd') do set "ESC=%%A"
 
 echo %ESC%[34m================================================
-echo AMP Manager - Post Build Script (Require Admin)
+echo AMP Manager - Post Build Script
 echo ================================================%ESC%[0m
 
 :: CONFIGURATION
-:: Put ResourceHacker.exe in project root or update path
-:: Change APP_NAME to the exact app name from neutralino.config.json
 set "SCRIPT_DIR=%~dp0"
 set "RESOURCE_HACKER=%SCRIPT_DIR%resource_hacker\ResourceHacker.exe"
-set "APP_NAME=AMP-Manager"                  
+set "APP_NAME=AMP-Manager"
 set "BUILD_DIR=dist\amp-manager"
 set "MANIFEST_FILE=requireAdmin.manifest"
-  
+set "DEST=amp-manager"
 
-:: Find the latest Windows x64 executable
-for /f "delims=" %%A in ('dir /b /a-d "%BUILD_DIR%\%APP_NAME%-win_x64.exe" 2^>nul') do set "EXE_FILE=%%A"
+:: ============ Step 1: Find EXECUTABLE (ALL modes) ============
+for /f "delims=" %%A in ('dir /b /a-d "%BUILD_DIR%\*-win_x64.exe" 2^>nul ^| sort') do set "EXE_FILE=%%A"
 if not defined EXE_FILE (
-    for /f "delims=" %%A in ('dir /b /a-d "%BUILD_DIR%\*-win_x64.exe" 2^>nul ^| sort') do set "EXE_FILE=%%A"
-)
-
-if not defined EXE_FILE (
-    echo %ESC%[31m[ERROR] Could not find any *-win_x64.exe in %BUILD_DIR%%ESC%[0m
-    echo Make sure you ran "neu build" first.
-    pause
+    echo %ESC%[31m[ERROR] Could not find *-win_x64.exe in %BUILD_DIR%%ESC%[0m
+    if "%CI%"=="" pause
     exit /b 1
 )
-
 
 set "FULL_EXE=%BUILD_DIR%\%EXE_FILE%"
-
 echo Found executable: %EXE_FILE%
-echo Applying requireAdministrator manifest...
 
-:: Apply the manifest using Resource Hacker (add overwrite = replace if exists)
-"%RESOURCE_HACKER%" -open "%FULL_EXE%" -save "%FULL_EXE%" -action addoverwrite -res "%MANIFEST_FILE%" -mask MANIFEST,1,1033 -log console
-
-if %errorlevel% neq 0 (
-    echo %ESC%[31m[ERROR] Failed to apply manifest. Make sure ResourceHacker.exe is in the project root.%ESC%[0m
-    pause
-    exit /b 1
+:: ============ Step 2: CI Mode Check ============
+if "%CI%"=="true" (
+    echo %ESC%[33m[CI] CI mode detected - skipping prompts%ESC%[0m
+    goto :APPLY_UAC
 )
 
+:: ============ LOCAL: Show Clean Option ============
 echo.
-echo %ESC%[32mSuccess! Admin manifest applied to: %EXE_FILE%%ESC%[0m
-echo Users will now see UAC prompt when launching the app (required for amp-tasks.bat + Docker).
-echo.
-echo You can distribute the file from: %FULL_EXE%
-echo.
-
-
-
-:: Ask user if they want to clean up non-Windows build artifacts
 echo %ESC%[34m================================================
 echo Cleanup Option
 echo ================================================%ESC%[0m
@@ -77,15 +56,60 @@ set /p CHOICE="Choose (C/S/E): "
 
 if /i "%CHOICE%"=="C" (
     call post-clean-dist.bat
-) else if /i "%CHOICE%"=="S" (
-    echo Skipping cleanup.
 ) else if /i "%CHOICE%"=="E" (
     echo Exiting.
     endlocal
     exit /b 0
-) else (
-    echo Invalid choice. Skipping cleanup.
 )
+
+:: ============ Step 3: Apply UAC Manifest ============
+:APPLY_UAC
+echo %ESC%[34m[AMP] Applying UAC manifest...%ESC%[0m
+
+"%RESOURCE_HACKER%" -open "%FULL_EXE%" -save "%FULL_EXE%" -action addoverwrite -res "%MANIFEST_FILE%" -mask MANIFEST,1,1033 -log nul
+if %errorlevel% neq 0 (
+    echo %ESC%[31m[ERROR] Failed to apply UAC manifest%ESC%[0m
+    if "%CI%"=="" pause
+    exit /b 1
+)
+
+echo %ESC%[32m[AMP] ✅ UAC manifest applied%ESC%[0m
+
+:: ============ Step 4: Build Release Tree ============
+echo %ESC%[34m[AMP] Building release tree...%ESC%[0m
+
+:: Clean and create destination folder
+if exist "%DEST%" rmdir /s /q "%DEST%"
+mkdir "%DEST%"
+
+:: Copy executable + resources.neu
+copy "%BUILD_DIR%\%EXE_FILE%" "%DEST%\" >nul
+copy "%BUILD_DIR%\resources.neu" "%DEST%\" >nul
+
+:: Copy scripts + config files
+copy "amp-tasks.bat" "%DEST%\" >nul
+copy "docker-compose.yml" "%DEST%\" >nul
+copy "docker-compose.override.yml" "%DEST%\" >nul
+if exist ".env" copy ".env" "%DEST%\" >nul
+copy "LICENSE" "%DEST%\" >nul
+
+:: Copy folders WITH content
+xcopy "angie_cache" "%DEST%\angie_cache" /E /I /Q /Y >nul
+xcopy "config" "%DEST%\config" /E /I /Q /Y >nul
+xcopy "data" "%DEST%\data" /E /I /Q /Y >nul
+xcopy "logs" "%DEST%\logs" /E /I /Q /Y >nul
+xcopy "www" "%DEST%\www" /E /I /Q /Y >nul
+
+echo %ESC%[32m[AMP] ✅ Release tree ready: %DEST%%ESC%[0m
+
+:: ============ Step 5: Exit ============
+if "%CI%"=="true" exit /b 0
+
+:: LOCAL: Show summary
+echo.
+dir /b "%DEST%"
+echo.
+echo %ESC%[32m[AMP] Done.%ESC%[0m
 
 endlocal
 pause
