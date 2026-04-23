@@ -3,7 +3,7 @@ name: Build & Release AMP-Manager
 on:
   push:
     tags:
-      - 'v*.*.*'  # Matches v1.0.0, v1.0.1, etc. (at least 3 parts required)
+      - 'v*.*.*'
   workflow_dispatch:
 
 jobs:
@@ -12,53 +12,39 @@ jobs:
     
     if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref, '.')
     
-    defaults:
-      run:
-        working-directory: ${{ github.workspace }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Extract version
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=v$VERSION" >> $GITHUB_ENV
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          path: .
-
-      - name: Debug - Show directory structure
-        run: |
-          Write-Host "GH_WORKSPACE: $env:GITHUB_WORKSPACE"
-          Write-Host "Current dir: $(Get-Location)"
-          Write-Host "Contents:"
-          Get-ChildItem -Path . -Name
-
-      - name: Clean previous build artifacts
-        run: |
-          if (Test-Path "dist") { Remove-Item -Path "dist" -Recurse -Force -ErrorAction SilentlyContinue }
+          node-version: 20
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build UI
-        run: npx vite build
+        run: npm run build
 
-      - name: Build Neutralino app (Release)
-        run: npx neu build --release
+      - name: Build Neutralino Binary
+        run: npm run build:win
 
-      - name: Verify build output
-        run: |
-          Write-Host "Checking dist folder..."
-          Get-ChildItem -Path "dist" -Recurse -Filter "*.exe" | ForEach-Object { Write-Host "Found: $($_.FullName)" }
-          if (-not (Test-Path "dist/amp-manager/amp-manager-win_x64.exe")) {
-            throw "Neutralino build failed - executable not found"
-          }
-          Write-Host "Build verified successfully"
-
-      - name: Clean non-Windows platforms
-        run: |
-          Get-ChildItem -Path "dist/amp-manager" -Directory | 
-            Where-Object { $_.Name -match 'linux|mac|arm' } | 
-            Remove-Item -Recurse -Force
+      - name: Verify Build Output
         shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path "dist" -Recurse -Filter "amp-manager-win_x64.exe" | Select-Object -First 1
+          if ($null -eq $exe) { throw "Build failed - executable not found" }
+          Write-Host "Found: $($exe.FullName)"
 
-      - name: Apply UAC + Build Release Tree
+      - name: Apply UAC + Build Release Tree (CI mode)
         env:
           CI: true
         shell: cmd
@@ -66,6 +52,7 @@ jobs:
         run: .\post-build.bat
 
       - name: Verify release structure
+        shell: pwsh
         run: |
           $required = @(
             "amp-manager/amp-manager-win_x64.exe",
@@ -77,19 +64,16 @@ jobs:
             "amp-manager/config",
             "amp-manager/www"
           )
-          $missing = @()
           foreach ($item in $required) {
-            if (-not (Test-Path $item)) {
-              $missing += $item
+            if (-not (Test-Path $item)) { 
+              Write-Error "Missing required file: $item"
+              exit 1 
             }
           }
-          if ($missing) {
-            Write-Host "Missing files:" $missing
-            exit 1
-          }
-          Write-Host "Release structure verified"
+          Write-Host "Release structure verified."
 
       - name: Create release ZIP
+        shell: pwsh
         run: |
           $zipName = "AMP-Manager-${{ env.VERSION }}-win-x64.zip"
           Compress-Archive -Path "amp-manager\*" -DestinationPath $zipName -Force
@@ -102,7 +86,7 @@ jobs:
           path: AMP-Manager-${{ env.VERSION }}-win-x64.zip
 
       - name: Create GitHub Release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: AMP-Manager-${{ env.VERSION }}-win-x64.zip
