@@ -45,9 +45,9 @@ jobs:
       - name: Build UI
         run: npm run build
 
-      - name: Build Neutralino Binary
+- name: Build Neutralino Binary
         run: |
-          npx neu update --force
+          npx neu update
           npx neu build
 
       - name: Verify Build Output
