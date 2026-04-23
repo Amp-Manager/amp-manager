@@ -20,9 +20,24 @@ echo ================================================%ESC%[0m
 set "SCRIPT_DIR=%~dp0"
 set "RESOURCE_HACKER=%SCRIPT_DIR%resource_hacker\ResourceHacker.exe"
 set "APP_NAME=AMP-Manager"
-set "BUILD_DIR=dist\amp-manager"
 set "MANIFEST_FILE=requireAdmin.manifest"
 set "DEST=amp-manager"
+
+:: ============ Find Build Output Directory (CI + Local) ============
+set "BUILD_DIR="
+if exist "dist\amp-manager" (
+    set "BUILD_DIR=dist\amp-manager"
+) else if exist "dist\amp-manager-win_x64" (
+    set "BUILD_DIR=dist\amp-manager-win_x64"
+)
+
+if not defined BUILD_DIR (
+    echo %ESC%[31m[ERROR] Could not find build output in dist folder%ESC%[0m
+    if "%CI%"=="" pause
+    exit /b 1
+)
+
+echo [AMP] Build directory: %BUILD_DIR%
 
 :: ============ Step 1: Find EXECUTABLE (ALL modes) ============
 for /f "delims=" %%A in ('dir /b /a-d "%BUILD_DIR%\*-win_x64.exe" 2^>nul ^| sort') do set "EXE_FILE=%%A"
