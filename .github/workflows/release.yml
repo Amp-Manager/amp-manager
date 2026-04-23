@@ -48,7 +48,7 @@ jobs:
         run: npm run build
 
       - name: Build Neutralino app (Release)
-        run: npx @neutralinojs/neu build --release
+        run: npm run build:win
 
       - name: Verify build output
         run: |
