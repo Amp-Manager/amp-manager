@@ -13,6 +13,13 @@ export default defineConfig(({mode}) => {
       __AMP_DEV__: !isProd,
     },
     resolve: { alias: { '@': path.resolve(__dirname, './src') } },
+    
+    // Local Simple server config
+    server: {
+      host: 'localhost',
+      port: 3000,
+    },
+
     ...(isProd && {
       build: {
         outDir: 'resources',

@@ -16,8 +16,8 @@
   "dataLocation": "app",
   "tokenSecurity": "one-time",
   "logging": {
-    "enabled": true,
-    "writeToLogFile": true
+    "enabled": false,
+    "writeToLogFile": false
   },
   "nativeAllowList": [
     "os.execCommand",
@@ -62,14 +62,14 @@
       "fullScreen": false,
       "alwaysOnTop": false,
       "icon": "/resources/icons/appIcon.png",
-      "enableInspector": true,
       "borderless": true,
       "transparent": true,
       "minimize": true,
       "maximizeOnStart": false,
       "resizable": true,
       "useSavedState": false,
-      "exitProcessOnClose": true
+      "exitProcessOnClose": true,
+      "enableInspector": false
     }
   },
   "cli": {

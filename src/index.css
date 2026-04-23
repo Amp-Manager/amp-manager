@@ -111,18 +111,12 @@ main > div {
   /* Performance: Isolate repaints */
   contain: layout style;
 }
-
-#titlebar-amp:active {
-  cursor: grabbing;
-}
-
 #titlebar-amp::after {
   content: '';
   position: absolute;
   inset: 0;
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
-
   background: radial-gradient(
     circle at var(--glow-x) var(--glow-y),
     /* Mix 30% of color with transparent */
@@ -138,19 +132,18 @@ main > div {
   /* Performance: Hint GPU for changes */
   will-change: background-position;
 }
-
 #titlebar-amp:hover::after {
   opacity: 0.7;
 }
-
 #titlebar-amp > * {
   position: relative;
   z-index: 1;
 }
-
+#titlebar-amp:active {
+  cursor: grabbing;
+}
 .no-drag {
   -webkit-app-region: no-drag;
-  /* color: */
 }
 
 .menu .active, .menu-active {
@@ -186,6 +179,11 @@ main > div {
     --color-base-content: oklch(48.5% 0.235 277.117);
   }
 }
+:where(.textarea, .input) {
+    &:focus, &:focus-within {
+        box-shadow: 0 1px var(--color-primary);
+    }
+}
 
 /* AMP Toast buttons */
 .amp-toast-action {
@@ -196,11 +194,15 @@ main > div {
 }
 
 /* AMP Toast Styling */
-/* .amp-toast { @apply flex items-start gap-3 p-4 border border-2 rounded-lg border shadow-lg; } */
-.amp-toast-warning { @apply border-warning/30 bg-base-300; }
 .amp-toast-info { @apply border-info/30 bg-info/10; }
 .amp-toast-description { @apply text-white opacity-80 mt-1; }
 .amp-toast-action { @apply btn btn-xs btn-soft shrink-0; }
+.amp-toast-warning { 
+  --btn-bg:color-mix(in oklab, var(--btn-color,var(--color-warning)) 8%, var(--color-base-300));
+  background: var(--btn-bg)!important;
+  border-color: var(--color-warning)!important;
+  color: var(--color-warning)!important; 
+}
 .amp-toast-success { 
   --btn-bg:color-mix(in oklab, var(--btn-color,var(--color-success)) 8%, var(--color-base-300));
   background: var(--btn-bg)!important;
@@ -212,17 +214,10 @@ main > div {
   border-color: var(--color-error)!important;
   color: var(--color-error)!important; 
 }
-
 .amp-toast-error > .amp-toast-action {
   --btn-bg:color-mix(in oklab, var(--btn-color,var(--color-base-content)) 8%, var(--color-base-300));
     color: var(--color-warning)!important;
     background: var(--btn-bg)!important;
-}
-
-:where(.textarea, .input) {
-    &:focus, &:focus-within {
-        box-shadow: 0 1px var(--color-primary);
-    }
 }
 
 /* Recharts style elements without props */
@@ -251,17 +246,6 @@ main > div {
   grid-column: span 2 / span 2;
 }
 
-.bg-dots {
-  --dot-bg: var(--color-base-300);
-  --dot-color: var(--color-primary);
-  --dot-size: 1px;
-  --dot-space: 6px;
-	background:
-		linear-gradient(90deg, var(--dot-bg) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
-		linear-gradient(var(--dot-bg) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
-		var(--dot-color);
-}
-
 /* MODAL */
 .modal {
   backdrop-filter: blur(var(--glass-blur, 4px));
@@ -282,7 +266,6 @@ main > div {
   --xy-controls-button-background-color-default: var(--color-base-100);
   --xy-controls-button-border-color-default: var(--color-base-300); 
 }
-
 .react-flow__attribution {
  font-size: 7px !important;
  padding: 0!important;
@@ -294,38 +277,4 @@ main > div {
     --rdp-accent-background-color: #f0f0ff;
     --rdp-day-height: 44px;
     --rdp-day-width: 44px;
-    --rdp-day_button-border-radius: 100%;
-    --rdp-day_button-border: 2px solid transparent;
-    --rdp-day_button-height: 42px;
-    --rdp-day_button-width: 42px;
-    --rdp-selected-border: 2px solid var(--rdp-accent-color);
-    --rdp-disabled-opacity: 0.5;
-    --rdp-outside-opacity: 0.75;
-    --rdp-today-color: var(--rdp-accent-color);
-    --rdp-dropdown-gap: 0.5rem;
-    --rdp-months-gap: 2rem;
-    --rdp-nav_button-disabled-opacity: 0.5;
-    --rdp-nav_button-height: 2.25rem;
-    --rdp-nav_button-width: 2.25rem;
-    --rdp-nav-height: 2.75rem;
-    --rdp-range_middle-background-color: var(--rdp-accent-background-color);
-    --rdp-range_middle-color: inherit;
-    --rdp-range_start-color: white;
-    --rdp-range_start-background: linear-gradient(var(--rdp-gradient-direction), transparent 50%, var(--rdp-range_middle-background-color) 50%);
-    --rdp-range_start-date-background-color: var(--rdp-accent-color);
-    --rdp-range_end-background: linear-gradient(var(--rdp-gradient-direction), var(--rdp-range_middle-background-color) 50%, transparent 50%);
-    --rdp-range_end-color: white;
-    --rdp-range_end-date-background-color: var(--rdp-accent-color);
-    --rdp-week_number-border-radius: 100%;
-    --rdp-week_number-border: 2px solid transparent;
-    --rdp-week_number-height: var(--rdp-day-height);
-    --rdp-week_number-opacity: 0.75;
-    --rdp-week_number-width: var(--rdp-day-width);
-    --rdp-weeknumber-text-align: center;
-    --rdp-weekday-opacity: 0.75;
-    --rdp-weekday-padding: 0.5rem 0rem;
-    --rdp-weekday-text-align: center;
-    --rdp-gradient-direction: 90deg;
-    --rdp-animation_duration: 0.3s;
-    --rdp-animation_timing: cubic-bezier(0.4, 0, 0.2, 1);
 }

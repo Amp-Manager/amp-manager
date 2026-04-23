@@ -63,7 +63,7 @@ export default function About() {
     },
     {
       q: "Do I need Docker Desktop?",
-      a: "Yes — AMP uses Docker Desktop (or Docker Engine) as its runtime. AMP manages your stack; Docker runs the containers."
+      a: "Yes, AMP uses Docker Desktop (or Docker Engine) as its runtime. AMP manages your stack; Docker runs the containers."
     },
     {
       q: "Where are my files stored?",
@@ -83,7 +83,7 @@ export default function About() {
     },
     {
       q: "Is storing credentials in AMP Manager safe?",
-      a: "Yes — your credentials are encrypted locally using your AMP Manager login. The data never leaves your machine and cannot be accessed by other apps or websites. This process is fully automatic, secure, and designed to enable a secure integration with your workflows."
+      a: "Yes, your credentials are encrypted locally using your AMP Manager login. The data never leaves your machine and cannot be accessed by other apps or websites. This process is fully automatic, secure, and designed to enable a secure integration with your workflows."
     },
     {
       q: "Is AMP Manager a deployment platform?",
