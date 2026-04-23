@@ -25,7 +25,9 @@ set "DEST=amp-manager"
 
 :: ============ Find Build Output Directory (CI + Local) ============
 set "BUILD_DIR="
-if exist "dist\amp-manager" (
+if exist "dist\amp-manager\amp-manager" (
+    set "BUILD_DIR=dist\amp-manager\amp-manager"
+) else if exist "dist\amp-manager" (
     set "BUILD_DIR=dist\amp-manager"
 ) else if exist "dist\amp-manager-win_x64" (
     set "BUILD_DIR=dist\amp-manager-win_x64"

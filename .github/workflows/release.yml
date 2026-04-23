@@ -35,14 +35,13 @@ jobs:
         run: npm run build
 
       - name: Build Neutralino Binary
-        run: npx neu build --release
+        run: |
+          npx neu update
+          npx neu build
 
       - name: Verify Build Output
         shell: pwsh
         run: |
-          Write-Host "Checking dist directory contents..."
-          Get-ChildItem -Path "dist" -Recurse | ForEach-Object { Write-Host $_.FullName }
-          
           $exe = Get-ChildItem -Path "dist" -Recurse -Filter "amp-manager-win_x64.exe" | Select-Object -First 1
           if ($null -eq $exe) { 
             Write-Host "ERROR: amp-manager-win_x64.exe not found"
