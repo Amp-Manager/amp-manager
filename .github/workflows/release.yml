@@ -15,6 +15,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Debug - Show directory structure
+        run: |
+          Write-Host "Current: $(Get-Location)"
+          Write-Host "Contents:"
+          Get-ChildItem -Path . | Format-Table Name -AutoSize
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -52,7 +60,11 @@ jobs:
 
       - name: Verify build output
         run: |
+          Write-Host "Checking dist folder..."
+          Get-ChildItem -Path "dist" -Recurse -File | Format-Table FullName -AutoSize
           if (-not (Test-Path "dist/amp-manager/amp-manager-win_x64.exe")) {
+            Write-Host "EXE NOT FOUND in expected location"
+            Get-ChildItem -Path "dist" -Recurse -Filter "*.exe" | ForEach-Object { Write-Host "Found exe: $($_.FullName)" }
             throw "Neutralino build failed - executable not found"
           }
           Write-Host "Build verified successfully"
