@@ -2,7 +2,7 @@ node_modules/
 build/
 dist/
 # Neutralinojs client (minified)
-neutralino.js
+# neutralino.js
 
 # misc
 backup/
