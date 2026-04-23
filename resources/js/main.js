@@ -140,23 +140,23 @@ window.AMP = {
     // Filesystem helpers
     fs: {
         async readTextFile(path) {
-            const r = await Neutralino.filesystem.readFile(path);
+            const r = await Neutralino.fs.readFile(path);
             return typeof r === 'string' ? r : r.data;
         },
         async writeTextFile(path, content) {
-            await Neutralino.filesystem.writeFile(path, content);
+            await Neutralino.fs.writeFile(path, content);
         },
         async copyFile(source, dest) {
-            await Neutralino.filesystem.copyFile(source, dest);
+            await Neutralino.fs.copyFile(source, dest);
         },
         async deleteFile(path) {
-            await Neutralino.filesystem.removeFile(path);
+            await Neutralino.fs.removeFile(path);
         },
         async getFolderSize(path) {
             let totalSize = 0;
             async function scan(dir) {
                 try {
-                    const entries = await Neutralino.filesystem.readDirectory(dir);
+                    const entries = await Neutralino.fs.readDirectory(dir);
                     for (const entry of entries) {
                         if (entry.entry === "." || entry.entry === "..") continue;
                         const fullPath = `${dir}\\${entry.entry}`;
@@ -164,7 +164,7 @@ window.AMP = {
                             await scan(fullPath);
                         } else {
                             try {
-                                const stats = await Neutralino.filesystem.getStats(fullPath);
+                                const stats = await Neutralino.fs.getStats(fullPath);
                                 totalSize += stats.size;
                             } catch (e) {}
                         }
@@ -181,19 +181,19 @@ window.AMP = {
         },
         async readDirectory(path) { 
             try { 
-                return await Neutralino.filesystem.readDirectory(path); 
+                return await Neutralino.fs.readDirectory(path); 
             } catch { 
                 return []; 
             } 
         },
         async createDirectory(path) {
-            await Neutralino.filesystem.createDirectory(path);
+            await Neutralino.fs.createDirectory(path);
         },
         async remove(path) {
-            await Neutralino.filesystem.remove(path);
+            await Neutralino.fs.remove(path);
         },
         async getAbsolutePath(path) {
-            return await Neutralino.filesystem.getAbsolutePath(path);
+            return await Neutralino.fs.getAbsolutePath(path);
         },
     },
 
@@ -264,18 +264,18 @@ window.AMP = {
         
         // Orphan temp key cleanup - runs before custom key SFTP
         async cleanupOrphanKeys() {
-            const userTemp = process.env.TEMP || process.env.TMP;
+            const userTemp = await Neutralino.os.getEnv('TEMP') || await Neutralino.os.getEnv('TMP');
             try {
-                const files = await Neutralino.filesystem.readDirectory(userTemp);
+                const files = await Neutralino.fs.readDirectory(userTemp);
                 const oneHourAgo = Date.now() - (60 * 60 * 1000);
                 
                 for (const file of files) {
                     if (file.entry.startsWith('amp_sftp_key_') && file.entry.endsWith('.key')) {
                         const filePath = `${userTemp}\\${file.entry}`;
                         try {
-                            const stats = await Neutralino.filesystem.getStats(filePath);
+                            const stats = await Neutralino.fs.getStats(filePath);
                             if (stats.modifiedAt < oneHourAgo) {
-                                await Neutralino.filesystem.removeFile(filePath);
+                                await Neutralino.fs.removeFile(filePath);
                             }
                         } catch {}
                     }
@@ -283,13 +283,14 @@ window.AMP = {
             } catch {}
         },
         
-        // DEFAULT: SFTP with AMP Manager's existing SSH key (no temp file, no decryption)
+// DEFAULT: SFTP with AMP Manager's existing SSH key (no temp file, no decryption)
         sftpWithAmpKey: async (host, username, localPath, remotePath) => {
-            const keyPath = `${process.env.USERPROFILE}\\.ssh\\id_ed25519`;
+            const userProfile = await Neutralino.os.getEnv('USERPROFILE');
+            const keyPath = `${userProfile}\.ssh\id_ed25519`;
             
             // Verify key exists
             try {
-                await Neutralino.filesystem.getStats(keyPath);
+                await Neutralino.fs.getStats(keyPath);
             } catch {
                 return { status: "error", message: "AMP SSH key not found. Please regenerate in Settings → SSH Key." };
             }
@@ -303,12 +304,12 @@ window.AMP = {
             // Cleanup orphan temp keys first
             await workflow.cleanupOrphanKeys();
             
-            const userTemp = process.env.TEMP || process.env.TMP;
+            const userTemp = await Neutralino.os.getEnv('TEMP') || await Neutralino.os.getEnv('TMP');
             const random = Math.random().toString(36).substring(2, 15);
             const tempKeyPath = `${userTemp}\\amp_sftp_key_${random}.key`;
             
             // Write key content to temp file
-            await Neutralino.filesystem.writeFile(tempKeyPath, keyContent);
+            await Neutralino.fs.writeFile(tempKeyPath, keyContent);
             
             // Set restrictive permissions via icacls (silently continue if fails)
             try {

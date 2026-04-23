@@ -13,8 +13,6 @@ jobs:
     permissions:
       contents: write
     
-    if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref, '.')
-    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +43,7 @@ jobs:
       - name: Build UI
         run: npm run build
 
-- name: Build Neutralino Binary
+      - name: Build Neutralino Binary
         run: |
           npx neu update
           npx neu build
