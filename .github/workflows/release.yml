@@ -15,60 +15,36 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Debug - Show directory structure
         run: |
-          Write-Host "Current: $(Get-Location)"
+          Write-Host "GH_WORKSPACE: $env:GITHUB_WORKSPACE"
+          Write-Host "Current dir: $(Get-Location)"
           Write-Host "Contents:"
-          Get-ChildItem -Path . | Format-Table Name -AutoSize
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Extract version from tag
-        run: |
-          $version = "${{ github.ref_name }}" -replace '^v', ''
-          echo "VERSION=$version" >> $env:GITHUB_ENV
-        shell: pwsh
-
-      - name: Update versions
-        run: |
-          # Update neutralino.config.json
-          $config = Get-Content 'neutralino.config.json' -Raw | ConvertFrom-Json
-          $config.version = "${{ env.VERSION }}"
-          $config | ConvertTo-Json -Depth 10 | Set-Content 'neutralino.config.json'
-          
-          # Update package.json
-          $package = Get-Content 'package.json' -Raw | ConvertFrom-Json
-          $package.version = "${{ env.VERSION }}"
-          $package | ConvertTo-Json -Depth 10 | Set-Content 'package.json'
-        shell: pwsh
-
-      - name: Install dependencies
-        run: npm ci
+          Get-ChildItem -Path . -Name
+          Write-Host "`nChecking node_modules:"
+          if (Test-Path "node_modules/@neutralinojs/neu") {
+            Write-Host "neu found in node_modules"
+          } else {
+            Write-Host "WARNING: neu not found in node_modules"
+          }
 
       - name: Build UI
         run: npm run build
 
       - name: Build Neutralino app (Release)
-        run: npm run build:win
+        run: |
+          Write-Host "PWD before: $(Get-Location)"
+          npm run build:win
 
       - name: Verify build output
         run: |
           Write-Host "Checking dist folder..."
-          Get-ChildItem -Path "dist" -Recurse -File | Format-Table FullName -AutoSize
+          Get-ChildItem -Path "dist" -Recurse -Filter "*.exe" | ForEach-Object { Write-Host "Found: $($_.FullName)" }
           if (-not (Test-Path "dist/amp-manager/amp-manager-win_x64.exe")) {
-            Write-Host "EXE NOT FOUND in expected location"
-            Get-ChildItem -Path "dist" -Recurse -Filter "*.exe" | ForEach-Object { Write-Host "Found exe: $($_.FullName)" }
             throw "Neutralino build failed - executable not found"
           }
           Write-Host "Build verified successfully"
-        shell: pwsh
 
       - name: Clean non-Windows platforms
         run: |
