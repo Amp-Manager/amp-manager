@@ -98,7 +98,7 @@ jobs:
       - name: Create release ZIP
         shell: pwsh
         run: |
-          $zipName = "AMP-Manager-${{ env.VERSION }}-win-x64.zip"
+          $zipName = "amp-manager-${{ env.VERSION }}-win-x64.zip"
           Compress-Archive -Path "amp-manager\*" -DestinationPath $zipName -Force
           Write-Host "Created: $zipName"
 
@@ -106,13 +106,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AMP-Manager-release
-          path: AMP-Manager-${{ env.VERSION }}-win-x64.zip
+          path: amp-manager-${{ env.VERSION }}-win-x64.zip
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: AMP-Manager-${{ env.VERSION }}-win-x64.zip
+          files: amp-manager-${{ env.VERSION }}-win-x64.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
