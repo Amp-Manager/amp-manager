@@ -5,6 +5,7 @@
 // List of allowed tasks, these must match our amp-tasks.bat and UI
 const AMP_TASKS = {
     version: true,
+    watch: true,
     status: true,
     env_status: true,
     runtime_status: true,
@@ -40,7 +41,10 @@ const AMP_TASKS = {
     workflow_action: true,
     workflow_git: true,
     workflow_sftp: true,
-    workflow_webhook: true
+    workflow_webhook: true,
+
+    user_dir_create: true,
+    user_dir_delete: true
 };
 
 
@@ -113,6 +117,10 @@ window.AMP = {
     sshKeyStatus: () => amp("ssh_key_status"),
     sshKeyGenerate: (username) => amp("ssh_key_generate", `"${username}"`),
 
+    // User Directory Management
+    userDirCreate: (dirPath) => amp("user_dir_create", `"${dirPath}"`),
+    userDirDelete: (dirPath) => amp("user_dir_delete", `"${dirPath}"`),
+
     // OS helpers
     os: {
         async open(url) {
@@ -172,8 +180,21 @@ window.AMP = {
             return parseFloat((totalSize / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
         },
         async readDirectory(path) { 
-            return await Neutralino.filesystem.readDirectory(path); 
-        }
+            try { 
+                return await Neutralino.filesystem.readDirectory(path); 
+            } catch { 
+                return []; 
+            } 
+        },
+        async createDirectory(path) {
+            await Neutralino.filesystem.createDirectory(path);
+        },
+        async remove(path) {
+            await Neutralino.filesystem.remove(path);
+        },
+        async getAbsolutePath(path) {
+            return await Neutralino.filesystem.getAbsolutePath(path);
+        },
     },
 
     // Angie helpers
@@ -241,9 +262,9 @@ window.AMP = {
         npm: (path, command) => amp("workflow_action", `npm "${path}" "${command}"`),
         shell: (path, command) => amp("workflow_action", `shell "${path}" "${command}"`),
         
-        // temp key cleanup - runs before custom key SFTP
+        // Orphan temp key cleanup - runs before custom key SFTP
         async cleanupOrphanKeys() {
-            const userTemp = process.env.TEMP || process.env.TMP;
+            const userTemp = await Neutralino.os.getEnv('TEMP') || await Neutralino.os.getEnv('TMP');
             try {
                 const files = await Neutralino.filesystem.readDirectory(userTemp);
                 const oneHourAgo = Date.now() - (60 * 60 * 1000);
@@ -262,9 +283,10 @@ window.AMP = {
             } catch {}
         },
         
-        // DEFAULT: SFTP with AMP Manager's existing SSH key (no temp file, no decryption)
+// DEFAULT: SFTP with AMP Manager's existing SSH key (no temp file, no decryption)
         sftpWithAmpKey: async (host, username, localPath, remotePath) => {
-            const keyPath = `${process.env.USERPROFILE}\\.ssh\\id_ed25519`;
+            const userProfile = await Neutralino.os.getEnv('USERPROFILE');
+            const keyPath = `${userProfile}\.ssh\id_ed25519`;
             
             // Verify key exists
             try {
@@ -279,10 +301,10 @@ window.AMP = {
         
         // ADVANCED: SFTP with custom SSH key (temp file with icacls, always deleted)
         sftpWithCustomKey: async (host, username, localPath, remotePath, keyContent) => {
-            // Cleanup temp keys first
+            // Cleanup orphan temp keys first
             await workflow.cleanupOrphanKeys();
             
-            const userTemp = process.env.TEMP || process.env.TMP;
+            const userTemp = await Neutralino.os.getEnv('TEMP') || await Neutralino.os.getEnv('TMP');
             const random = Math.random().toString(36).substring(2, 15);
             const tempKeyPath = `${userTemp}\\amp_sftp_key_${random}.key`;
             

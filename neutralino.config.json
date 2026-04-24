@@ -24,7 +24,7 @@
     "os.*",
     "window.*",
     "debug.*",
-    "fs.*",
+    "filesystem.*",
     "storage.*",
     "nativeCalls.*",
     "extensions.*",
